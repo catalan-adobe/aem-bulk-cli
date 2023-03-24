@@ -1,0 +1,57 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":semanticCommits",
+    ":autodetectPinVersions"
+  ],
+  "timezone": "Europe/Paris",
+  "branchPrefix": "renovate-",
+  "packageRules": [
+    {
+      "groupName": "external fixes",
+      "updateTypes": [
+        "patch",
+        "pin",
+        "digest",
+        "minor"
+      ],
+      "automerge": true,
+      "schedule": [
+        "after 2pm on Saturday"
+      ],
+      "packagePatterns": [
+        "^.+"
+      ],
+      "excludePackagePatterns": [
+        "^@adobe/"
+      ]
+    },
+    {
+      "groupName": "external major",
+      "updateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "packagePatterns": [
+        "^.+"
+      ],
+      "excludePackagePatterns": [
+        "^@adobe/"
+      ],
+      "schedule": [
+        "after 2pm on Monday"
+      ]
+    },
+    {
+      "datasources": [
+        "orb"
+      ],
+      "updateTypes": [
+        "patch",
+        "minor"
+      ],
+      "automerge": true
+    }
+  ]
+}
