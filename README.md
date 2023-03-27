@@ -1,11 +1,13 @@
 Franklin Bulk Operations CLI
 ===
 
+
 ### Install
 
 ```
 npm install -g franklin-bulk
 ```
+
 
 ### Usage
 
@@ -37,6 +39,8 @@ npm install
 ```
 node index.js
 ```
+
+
 ### TODOs
 
 * [ ] Add unit tests
