@@ -84,7 +84,6 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
   }
 
   if (argv.errorFile) {
-    //var myLog = new File(argv.errorFile);
     if(fs.existsSync(argv.errorFile)){
       terminal.yellow(`[WARNING] Specified error file (${argv.errorFile}) already exists. Will overwrite.\n`);
       fs.truncateSync(argv.errorFile);
