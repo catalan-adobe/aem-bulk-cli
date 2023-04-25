@@ -66,6 +66,7 @@ async function readLines() {
 
 async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
   let urls = [];
+  let failedURLsFileStream;
 
   // set worker script
   const workerScript = path.join(__dirname, '../workers/', workerScriptFilename);
@@ -80,6 +81,16 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
     yargs.showHelp('log');
     terminal.yellow('Please specify either a file or interactive mode\n');
     process.exit(1);
+  }
+
+  if (argv.errorFile) {
+    //var myLog = new File(argv.errorFile);
+    if(fs.existsSync(argv.errorFile)){
+      terminal.yellow(`[WARNING] Specified error file (${argv.errorFile}) already exists. Will overwrite.\n`);
+      fs.truncateSync(argv.errorFile);
+    }
+
+    failedURLsFileStream = fs.createWriteStream(argv.errorFile);
   }
 
   // Array to keep track of the worker threads
@@ -131,6 +142,10 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
           terminal(` ✅ ${result.status.preMsg || ''}${result.url} \n`);
         } else {
           terminal(` ❌  ${result.url} - ^rError: ${result.status.result}^:\n`);
+
+          if (failedURLsFileStream) {
+            failedURLsFileStream.write(result.url);
+          }
         }
       }
 
