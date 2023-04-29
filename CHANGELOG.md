@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.0.3...v1.0.4) (2023-04-29)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([b602070](https://github.com/catalan-adobe/franklin-bulk-cli/commit/b602070bbe6b20bc06765ca26786f754e5cc3ed4))
+
 ## [1.0.3](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.0.2...v1.0.3) (2023-04-22)
 
 
