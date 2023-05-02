@@ -13,6 +13,11 @@ function defaultCLICmdWithWorkerYargsBuilder(yargs) {
       describe: 'Path to a text file containing the list of URLs to deliver (urls pattern: "https://<branch>--<repo>--<owner>.hlx.page/<path>")',
       type: 'string',
     })
+    .option('error-file', {
+      alias: 'e',
+      describe: 'Path to a text file that will contain the list of URLs that failed to process',
+      type: 'string',
+    })
     .conflicts('f', 'i')
     .option('workers', {
       alias: 'w',
