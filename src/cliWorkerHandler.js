@@ -110,7 +110,10 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
   terminal.green(`Processing ${urls.length} url(s) with ${numWorkers} worker(s)...\n`);
 
   // Start the workers
+  const importerLib = await import('franklin-bulk-shared');
+
   for (let i = 0; i < numWorkers; i += 1) {
+    await importerLib.Time.sleep(30000);
     const worker = new Worker(workerScript);
     workers.push(worker);
     // Handle worker exit
