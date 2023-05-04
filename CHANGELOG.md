@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.0.4...v1.1.0) (2023-05-04)
+
+
+### Features
+
+* add command to check url http status ([b6ce7c5](https://github.com/catalan-adobe/franklin-bulk-cli/commit/b6ce7c51c1805fb6a3fefa4cc97f1995c9d6a2fa))
+
 ## [1.0.4](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.0.3...v1.0.4) (2023-04-29)
 
 
