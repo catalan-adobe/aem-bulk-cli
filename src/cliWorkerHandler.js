@@ -138,7 +138,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
       while (results.length > 0 && results[0].status !== null) {
         const result = results.shift();
         if (result.status.passed) {
-          terminal(` ✅ ${result.status.preMsg || ''}${result.url} \n`);
+          terminal(` ✅ ${result.status.preMsg || ''}${result.url} ${result.status.postMsg || ''}\n`);
         } else {
           terminal(` ❌  ${result.url} - ^rError: ${result.status.result}^:\n`);
 
