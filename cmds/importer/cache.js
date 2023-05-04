@@ -2,6 +2,7 @@
 
 // imports
 const path = require('path');
+const { terminal } = require('terminal-kit');
 const { cliWorkerHandler } = require('../../src/cliWorkerHandler');
 
 function yargsBuilder(yargs) {
@@ -29,9 +30,9 @@ function yargsBuilder(yargs) {
       type: 'number',
       default: 1,
       coerce: (value) => {
-        if (value > 8) {
-          terminal.yellow('Warning: Maximum number of workers is 8. Using 8 workers instead.\n');
-          return 8;
+        if (value > 50) {
+          terminal.yellow('Warning: Maximum number of workers is 50. Using 50 workers instead.\n');
+          return 50;
         }
         return value;
       },
