@@ -4,12 +4,13 @@ const readline = require('readline');
 const yargs = require('yargs');
 const { terminal } = require('terminal-kit');
 const { Worker } = require('worker_threads');
+const fp = require('find-free-port');
 
 /*
  * Worker handlers
  */
 
-function workerMsgHandler(worker, urls, results, workerOptions, argv, result) {
+function workerMsgHandler(worker, urls, results, workerOptions, port, argv, result) {
   // store the result
   const idx = results.findIndex((r) => r.url === result.url);
   if (idx > -1) {
@@ -22,6 +23,7 @@ function workerMsgHandler(worker, urls, results, workerOptions, argv, result) {
     const url = urls.shift();
     results.push({ url, status: null });
     worker.postMessage({
+      port,
       line: urls.length - urls.length,
       options: workerOptions,
       argv,
@@ -101,6 +103,9 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
   */
 
   const numWorkers = argv.workers;
+  const ports = await fp(9222, 9800, '127.0.0.1', numWorkers);
+
+  console.log('ports', ports);
 
   terminal.green(`Processing ${urls.length} url(s) with ${numWorkers} worker(s)...\n`);
 
@@ -111,8 +116,9 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
     // Handle worker exit
     worker.on('exit', workerExitHandler.bind(null, workers));
     // Listen for messages from the worker thread
-    worker.on('message', workerMsgHandler.bind(null, worker, urls, results, workerOptions, argv));
+    worker.on('message', workerMsgHandler.bind(null, worker, urls, results, workerOptions, ports[i], argv));
   }
+
 
   // Send a URL to each worker
   for (let i = 0; i < numWorkers; i += 1) {
@@ -121,6 +127,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
       results.push({ url, status: null });
       workers[i].postMessage({
         idx: i + 1,
+        port: ports[i],
         options: workerOptions,
         argv,
         line: urls.length - urls.length,

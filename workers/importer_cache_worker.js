@@ -17,7 +17,10 @@ parentPort.on('message', async (msg) => {
     try {
       const u = new URL(msg.url);
       const OUTPUT_FOLDER = pUtils.join(msg.options.outputFolder, u.hostname); // `${process.cwd()}/output`;
-      const [browser, page] = await importerLib.Puppeteer.initBrowser({ headless: msg.options.headless });
+      const [browser, page] = await importerLib.Puppeteer.initBrowser({ 
+        port: msg.port,
+        headless: msg.options.headless
+      });
       
       await importerLib.Puppeteer.runStepsSequence(
         page,

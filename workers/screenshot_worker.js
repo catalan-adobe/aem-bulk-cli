@@ -15,7 +15,9 @@ parentPort.on('message', async (msg) => {
     try {
       const OUTPUT_FOLDER = `${process.cwd()}/output`;
 
-      const [browser, page] = await importerLib.Puppeteer.initBrowser();
+      const [browser, page] = await importerLib.Puppeteer.initBrowser({
+        port: msg.port,
+      });
 
       await importerLib.Puppeteer.runStepsSequence(
         page,
