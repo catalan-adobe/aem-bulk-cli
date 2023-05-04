@@ -120,11 +120,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
     worker.on('exit', workerExitHandler.bind(null, workers));
     // Listen for messages from the worker thread
     worker.on('message', workerMsgHandler.bind(null, worker, urls, results, workerOptions, ports[i], argv));
-  }
 
-
-  // Send a URL to each worker
-  for (let i = 0; i < numWorkers; i += 1) {
     const url = urls.shift();
     if (url) {
       results.push({ url, status: null });
@@ -141,6 +137,26 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
       workers[i].postMessage({ type: 'exit' });
     }
   }
+
+
+  // // Send a URL to each worker
+  // for (let i = 0; i < numWorkers; i += 1) {
+  //   const url = urls.shift();
+  //   if (url) {
+  //     results.push({ url, status: null });
+  //     workers[i].postMessage({
+  //       idx: i + 1,
+  //       port: ports[i],
+  //       options: workerOptions,
+  //       argv,
+  //       line: urls.length - urls.length,
+  //       url,
+  //     });
+  //   } else {
+  //     // If there are no more URLs, terminate the worker
+  //     workers[i].postMessage({ type: 'exit' });
+  //   }
+  // }
 
   return new Promise((resolve) => {
     // Handle ordered output
