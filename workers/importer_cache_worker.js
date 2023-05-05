@@ -1,6 +1,7 @@
 const { parentPort } = require('worker_threads');
 const pUtils = require('path');
 const fs = require('fs');
+const { WORKER_LOGGER } = require('../src/logger');
 
 /*
  * Worker thread
@@ -52,6 +53,7 @@ parentPort.on('message', async (msg) => {
           importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
           importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
         ],
+        WORKER_LOGGER.child({ workerId: `WORKER #${msg.idx}` }),
       );
 
       // cool down

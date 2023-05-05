@@ -17,6 +17,7 @@
     "find-free-port": "^2.0.0",
     "franklin-bulk-shared": "1.2.0",
     "terminal-kit": "3.0.0",
+    "winston": "^3.8.2",
     "yargs": "17.7.2"
   },
   "devDependencies": {
