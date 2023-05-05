@@ -135,9 +135,9 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
       while (results.length > 0 && results[0].status !== null) {
         const result = results.shift();
         if (result.status.passed) {
-          terminal(` ${result.status.result === 'Skipped' ? '⏩': '✅'} ${result.status.preMsg || ''}${result.url} ${result.status.postMsg || ''}\n`);
+          terminal(`${result.status.result === 'Skipped' ? '#SKIPPED# ⏩': '#PASSED# ✅'} ${result.status.preMsg || ''}${result.url} ${result.status.postMsg || ''}\n`);
         } else {
-          terminal(` ❌  ${result.url} - ^rError: ${result.status.result}^:\n`);
+          terminal(`#PASSED# ❌  ${result.url} - ^rError: ${result.status.result}^:\n`);
 
           if (failedURLsFileStream) {
             failedURLsFileStream.write(result.url);
