@@ -15,6 +15,8 @@ parentPort.on('message', async (msg) => {
   } else {
     console.log('threadId', threadId, workerData.idx, workerData.port, msg.port, msg.url);
 
+    const lll = WORKER_LOGGER.child({ workerId: `WORKER #${msg.idx}` });
+
     const importerLib = await import('franklin-bulk-shared');
 
     try {
@@ -26,7 +28,9 @@ parentPort.on('message', async (msg) => {
         const filename = `${OUTPUT_FOLDER}${path}`;
 
         if (fs.existsSync(filename)) {
-          WORKER_LOGGER.debug('SKIPPED >>>', msg.url);
+          lll.debug('SKIPPED >>>', msg.url);
+          console.log('SKIPPED >>>', threadId, msg.url);
+
           parentPort.postMessage({
             url: msg.url,
             passed: true,
@@ -54,17 +58,18 @@ parentPort.on('message', async (msg) => {
           importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
           importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
         ],
-        WORKER_LOGGER.child({ workerId: `WORKER #${msg.idx}` }),
+        lll,
       );
 
       // cool down
       await importerLib.Time.sleep(250);
 
-      WORKER_LOGGER.debug('CLOSING BROWSER >>>');
+      lll.debug('CLOSING BROWSER >>>');
       await browser.close();
-      WORKER_LOGGER.debug('BROWSER CLOSED >>>');
+      lll.debug('BROWSER CLOSED >>>');
 
-      WORKER_LOGGER.debug('PASSED >>>', msg.url);
+      lll.debug('PASSED >>>', msg.url);
+      console.log('PASSED >>>', threadId, msg.url);
 
       parentPort.postMessage({
         url: msg.url,
@@ -72,7 +77,8 @@ parentPort.on('message', async (msg) => {
         result: 'Success',
       });
     } catch (error) {
-      WORKER_LOGGER.debug('FAILED >>>', msg.url, error.message);
+      lll.debug('FAILED >>>', msg.url, error.message);
+      console.log('FAILED >>>', threadId, msg.url);
       parentPort.postMessage({
         url: msg.url,
         passed: false,

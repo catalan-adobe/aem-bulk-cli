@@ -6,11 +6,15 @@ const { terminal } = require('terminal-kit');
 const { Worker } = require('worker_threads');
 const fp = require('find-free-port');
 
+const results = [];
+let urls = [];
+
 /*
  * Worker handlers
  */
 
-function workerMsgHandler(worker, urls, results, workerOptions, port, workerId, result) {
+function workerMsgHandler(worker, workerOptions, port, workerId, result) {
+  console.log('RX MSG >>>', workerId);
   // store the result
   const idx = results.findIndex((r) => r.url === result.url);
   if (idx > -1) {
@@ -67,7 +71,6 @@ async function readLines() {
  */
 
 async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
-  let urls = [];
   let failedURLsFileStream;
 
   // set worker script
@@ -96,7 +99,6 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
 
   // Array to keep track of the worker threads
   const workers = [];
-  const results = [];
 
   /*
   * Init workers
@@ -124,7 +126,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
     // Handle worker exit
     worker.on('exit', workerExitHandler.bind(null, workers));
     // Listen for messages from the worker thread
-    worker.on('message', workerMsgHandler.bind(null, worker, urls, results, workerOptions, ports[i], i+1));
+    worker.on('message', workerMsgHandler.bind(null, worker, workerOptions, ports[i], i+1));
   }
   
   
