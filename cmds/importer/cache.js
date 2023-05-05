@@ -40,6 +40,10 @@ function yargsBuilder(yargs) {
     .option('no-headless', {
       describe: 'Starts the browser in non-headless mode. Useful for debugging. Also, it forces workers to 1.',
       type: 'boolean',
+    })
+    .option('skip-existing', {
+      describe: 'Starts the browser in non-headless mode. Useful for debugging. Also, it forces workers to 1.',
+      type: 'boolean',
     });
 }
 
@@ -57,10 +61,14 @@ exports.handler = async (argv) => {
   
   // headless true unless --no-headless is passed
   const headless = argv.headless !== undefined ? argv.headless : true;
+  
+  // skip-existing false unless --no-headless is passed
+  const skipExisting = argv.skipExisting !== undefined ? true : false;
 
   // execute preparation of the sections mapping
   return cliWorkerHandler('importer_cache_worker.js', {
     outputFolder,
     headless,
+    skipExisting,
   }, argv);
 };

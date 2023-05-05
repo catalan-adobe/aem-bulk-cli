@@ -10,7 +10,7 @@ const fp = require('find-free-port');
  * Worker handlers
  */
 
-function workerMsgHandler(worker, urls, results, workerOptions, port, argv, result) {
+function workerMsgHandler(worker, urls, results, workerOptions, port, workerId, argv, result) {
   // store the result
   const idx = results.findIndex((r) => r.url === result.url);
   if (idx > -1) {
@@ -23,6 +23,7 @@ function workerMsgHandler(worker, urls, results, workerOptions, port, argv, resu
     const url = urls.shift();
     results.push({ url, status: null });
     worker.postMessage({
+      idx: workerId,
       port,
       line: urls.length - urls.length,
       options: workerOptions,
@@ -102,7 +103,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
   * Init workers
   */
 
-  const numWorkers = argv.workers;
+  const numWorkers = Math.min(argv.workers, urls.length);
   const ports = await fp(9222, 9800, '127.0.0.1', numWorkers);
 
   console.log('ports', ports);
@@ -118,37 +119,17 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
     // Handle worker exit
     worker.on('exit', workerExitHandler.bind(null, workers));
     // Listen for messages from the worker thread
-    worker.on('message', workerMsgHandler.bind(null, worker, urls, results, workerOptions, ports[i], argv));
+    worker.on('message', workerMsgHandler.bind(null, worker, urls, results, workerOptions, ports[i], i+1, argv));
   }
   
   
-  // Send a URL to each worker
-  for (let i = 0; i < numWorkers; i += 1) {
-    const url = urls.shift();
-    if (url) {
-      results.push({ url, status: null });
-      workers[i].postMessage({
-        idx: i + 1,
-        port: ports[i],
-        options: workerOptions,
-        argv,
-        line: urls.length - urls.length,
-        url,
-      });
-    } else {
-      // If there are no more URLs, terminate the worker
-      workers[i].postMessage({ type: 'exit' });
-    }
-    await importerLib.Time.sleep(30000);
-  }
-
-  return new Promise((resolve) => {
+  const mainPromise = new Promise((resolve) => {
     // Handle ordered output
     const interval = setInterval(() => {
       while (results.length > 0 && results[0].status !== null) {
         const result = results.shift();
         if (result.status.passed) {
-          terminal(` ✅ ${result.status.preMsg || ''}${result.url} ${result.status.postMsg || ''}\n`);
+          terminal(` ${result.status.result === 'Skipped' ? '⏩': '✅'} ${result.status.preMsg || ''}${result.url} ${result.status.postMsg || ''}\n`);
         } else {
           terminal(` ❌  ${result.url} - ^rError: ${result.status.result}^:\n`);
 
@@ -162,8 +143,48 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
         clearInterval(interval);
         resolve();
       }
-    }, 10);
+    }, 100);
   });
+
+  Promise.all(urls.splice(0, numWorkers).map(async (url, idx) => {
+    return new Promise(async (resolve) => {
+      const w = idx * 2500;
+
+      results.push({ url, status: null });
+      workers[idx].postMessage({
+        idx: idx + 1,
+        port: ports[idx],
+        options: workerOptions,
+        argv,
+        line: urls.length - urls.length,
+        url,
+      });
+      await importerLib.Time.sleep(w);
+      resolve();
+    });
+  }));
+
+  // // Send a URL to each worker
+  // for (let i = 0; i < numWorkers; i += 1) {
+  //   const url = urls.shift();
+  //   if (url) {
+  //     results.push({ url, status: null });
+  //     workers[i].postMessage({
+  //       idx: i + 1,
+  //       port: ports[i],
+  //       options: workerOptions,
+  //       argv,
+  //       line: urls.length - urls.length,
+  //       url,
+  //     });
+  //   } else {
+  //     // If there are no more URLs, terminate the worker
+  //     workers[i].postMessage({ type: 'exit' });
+  //   }
+  //   await importerLib.Time.sleep(2500);
+  // }
+
+  return mainPromise;
 }
 
 /*

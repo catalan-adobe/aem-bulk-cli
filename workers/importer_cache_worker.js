@@ -17,6 +17,23 @@ parentPort.on('message', async (msg) => {
     try {
       const u = new URL(msg.url);
       const OUTPUT_FOLDER = pUtils.join(msg.options.outputFolder, u.hostname); // `${process.cwd()}/output`;
+
+      if (msg.options.skipExisting) {
+        const path = importerLib.Url.buildFilenameWithPathFromUrl(msg.url);
+        const filename = `${OUTPUT_FOLDER}${path}`;
+
+        console.log(filename);
+
+        if (fs.existsSync(filename)) {
+          parentPort.postMessage({
+            url: msg.url,
+            passed: true,
+            result: 'Skipped',
+          });
+          return;
+        }  
+      }
+
       const [browser, page] = await importerLib.Puppeteer.initBrowser({ 
         port: msg.port,
         headless: msg.options.headless
