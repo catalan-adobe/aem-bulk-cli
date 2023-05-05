@@ -10,7 +10,7 @@ const fp = require('find-free-port');
  * Worker handlers
  */
 
-function workerMsgHandler(worker, urls, results, workerOptions, port, workerId, argv, result) {
+function workerMsgHandler(worker, urls, results, workerOptions, port, workerId, result) {
   // store the result
   const idx = results.findIndex((r) => r.url === result.url);
   if (idx > -1) {
@@ -27,7 +27,6 @@ function workerMsgHandler(worker, urls, results, workerOptions, port, workerId, 
       port,
       line: urls.length - urls.length,
       options: workerOptions,
-      argv,
       url,
     });
   } else {
@@ -114,18 +113,25 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
   const importerLib = await import('franklin-bulk-shared');
 
   for (let i = 0; i < numWorkers; i += 1) {
-    const worker = new Worker(workerScript);
+    const worker = new Worker(workerScript, {
+      workerData: {
+        port: ports[i],
+        idx: i + 1,
+        workerOptions: workerOptions,
+      },
+    });
     workers.push(worker);
     // Handle worker exit
     worker.on('exit', workerExitHandler.bind(null, workers));
     // Listen for messages from the worker thread
-    worker.on('message', workerMsgHandler.bind(null, worker, urls, results, workerOptions, ports[i], i+1, argv));
+    worker.on('message', workerMsgHandler.bind(null, worker, urls, results, workerOptions, ports[i], i+1));
   }
   
   
   const mainPromise = new Promise((resolve) => {
     // Handle ordered output
     const interval = setInterval(() => {
+      console.log('display thread', results.length, results[0].status !== null);
       while (results.length > 0 && results[0].status !== null) {
         const result = results.shift();
         if (result.status.passed) {
@@ -155,7 +161,6 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
         idx: idx + 1,
         port: ports[idx],
         options: workerOptions,
-        argv,
         line: urls.length - urls.length,
         url,
       });

@@ -1,4 +1,4 @@
-const { parentPort } = require('worker_threads');
+const { parentPort, workerData, threadId } = require('worker_threads');
 const pUtils = require('path');
 const fs = require('fs');
 const { WORKER_LOGGER } = require('../src/logger');
@@ -13,6 +13,8 @@ parentPort.on('message', async (msg) => {
     // If the parent thread sent 'exit', exit the worker thread
     process.exit();
   } else {
+    console.log('threadId', threadId, workerData.idx, workerData.port, msg.port, msg.url);
+
     const importerLib = await import('franklin-bulk-shared');
 
     try {
@@ -23,9 +25,8 @@ parentPort.on('message', async (msg) => {
         const path = importerLib.Url.buildFilenameWithPathFromUrl(msg.url);
         const filename = `${OUTPUT_FOLDER}${path}`;
 
-        console.log(filename);
-
         if (fs.existsSync(filename)) {
+          WORKER_LOGGER.debug('SKIPPED >>>', msg.url);
           parentPort.postMessage({
             url: msg.url,
             passed: true,
@@ -50,8 +51,8 @@ parentPort.on('message', async (msg) => {
           // importerLib.Puppeteer.Steps.execAsync(async (browserPage) => {
           //   await browserPage.keyboard.press('Escape');
           // }),
-          importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
           importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
+          importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
         ],
         WORKER_LOGGER.child({ workerId: `WORKER #${msg.idx}` }),
       );
@@ -59,7 +60,11 @@ parentPort.on('message', async (msg) => {
       // cool down
       await importerLib.Time.sleep(250);
 
+      WORKER_LOGGER.debug('CLOSING BROWSER >>>');
       await browser.close();
+      WORKER_LOGGER.debug('BROWSER CLOSED >>>');
+
+      WORKER_LOGGER.debug('PASSED >>>', msg.url);
 
       parentPort.postMessage({
         url: msg.url,
@@ -67,6 +72,7 @@ parentPort.on('message', async (msg) => {
         result: 'Success',
       });
     } catch (error) {
+      WORKER_LOGGER.debug('FAILED >>>', msg.url, error.message);
       parentPort.postMessage({
         url: msg.url,
         passed: false,
