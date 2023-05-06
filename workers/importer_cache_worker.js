@@ -28,10 +28,10 @@ parentPort.on('message', async (msg) => {
       const OUTPUT_FOLDER = pUtils.join(msg.options.outputFolder, u.hostname); // `${process.cwd()}/output`;
 
       if (msg.options.skipExisting) {
-        const path = importerLib.Url.buildFilenameWithPathFromUrl(msg.url);
-        const filename = `${OUTPUT_FOLDER}${path}`;
-
-        if (fs.existsSync(filename)) {
+        const [p, filename] = importerLib.Url.buildPathAndFilenameWithPathFromUrl(msg.url);
+        const path = pUtils.join(OUTPUT_FOLDER, p);
+  
+        if (fs.existsSync(pUtils.join(path,filename))) {
           lll.debug(`SKIPPED >>> ${msg.url}`);
           console.log('SKIPPED >>>', threadId, msg.url);
 
@@ -59,7 +59,7 @@ parentPort.on('message', async (msg) => {
           // importerLib.Puppeteer.Steps.execAsync(async (browserPage) => {
           //   await browserPage.keyboard.press('Escape');
           // }),
-          // importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
+          importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
           importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
         ],
         lll,
