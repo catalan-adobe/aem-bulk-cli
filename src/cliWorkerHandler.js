@@ -133,13 +133,13 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
   const mainPromise = new Promise((resolve) => {
     // Handle ordered output
     const interval = setInterval(() => {
-      console.log('display thread', results.length, results[0].status !== null);
+      // console.log('display thread', results.length, results[0].status !== null);
       while (results.length > 0 && results[0].status !== null) {
         const result = results.shift();
         if (result.status.passed) {
           terminal(`${result.status.result === 'Skipped' ? '#SKIPPED# ⏩': '#PASSED# ✅'} ${result.status.preMsg || ''}${result.url} ${result.status.postMsg || ''}\n`);
         } else {
-          terminal(`#PASSED# ❌  ${result.url} - ^rError: ${result.status.result}^:\n`);
+          terminal(`#FAILED# ❌  ${result.url} - ^rError: ${result.status.result}^:\n`);
 
           if (failedURLsFileStream) {
             failedURLsFileStream.write(result.url);
