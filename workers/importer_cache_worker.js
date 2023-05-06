@@ -21,6 +21,8 @@ parentPort.on('message', async (msg) => {
 
     const importerLib = await import('franklin-bulk-shared');
 
+    let browser, page;
+
     try {
       const u = new URL(msg.url);
       const OUTPUT_FOLDER = pUtils.join(msg.options.outputFolder, u.hostname); // `${process.cwd()}/output`;
@@ -42,7 +44,7 @@ parentPort.on('message', async (msg) => {
         }  
       }
 
-      const [browser, page] = await importerLib.Puppeteer.initBrowser({ 
+      [browser, page] = await importerLib.Puppeteer.initBrowser({ 
         port: msg.port,
         headless: msg.options.headless
       });
@@ -86,6 +88,11 @@ parentPort.on('message', async (msg) => {
         passed: false,
         result: error.message,
       });
+    } finally {
+      if (browser) {
+        lll.debug('BROWSER STILL OPEN, CLOSE IT!! >>>');
+        await browser.close();
+      }
     }
   }
 });
