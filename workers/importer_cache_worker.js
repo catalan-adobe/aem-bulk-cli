@@ -17,7 +17,7 @@ parentPort.on('message', async (msg) => {
 
     const lll = WORKER_LOGGER.child({ workerId: `WORKER #${msg.idx}` });
 
-    lll.debug('threadId', threadId, workerData.idx, workerData.port, msg.port, msg.url);
+    lll.debug(`threadId ${threadId}, ${workerData.idx}, ${workerData.port}, ${msg.port}, ${msg.url}`);
 
     const importerLib = await import('franklin-bulk-shared');
 
@@ -30,7 +30,7 @@ parentPort.on('message', async (msg) => {
         const filename = `${OUTPUT_FOLDER}${path}`;
 
         if (fs.existsSync(filename)) {
-          lll.debug('SKIPPED >>>', msg.url);
+          lll.debug(`SKIPPED >>> ${msg.url}`);
           console.log('SKIPPED >>>', threadId, msg.url);
 
           parentPort.postMessage({
@@ -57,7 +57,7 @@ parentPort.on('message', async (msg) => {
           // importerLib.Puppeteer.Steps.execAsync(async (browserPage) => {
           //   await browserPage.keyboard.press('Escape');
           // }),
-          importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
+          // importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
           importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
         ],
         lll,
@@ -70,7 +70,7 @@ parentPort.on('message', async (msg) => {
       await browser.close();
       lll.debug('BROWSER CLOSED >>>');
 
-      lll.debug('PASSED >>>', msg.url);
+      lll.debug(`PASSED >>> ${msg.url}`);
       console.log('PASSED >>>', threadId, msg.url);
 
       parentPort.postMessage({
@@ -79,7 +79,7 @@ parentPort.on('message', async (msg) => {
         result: 'Success',
       });
     } catch (error) {
-      lll.debug('FAILED >>>', msg.url, error.message);
+      lll.debug( `FAILED >>> ${msg.url}, ${error.message}`);
       console.log('FAILED >>>', threadId, msg.url);
       parentPort.postMessage({
         url: msg.url,
