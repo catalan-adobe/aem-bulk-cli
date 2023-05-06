@@ -17,6 +17,8 @@ parentPort.on('message', async (msg) => {
 
     const lll = WORKER_LOGGER.child({ workerId: `WORKER #${msg.idx}` });
 
+    lll.debug('threadId', threadId, workerData.idx, workerData.port, msg.port, msg.url);
+
     const importerLib = await import('franklin-bulk-shared');
 
     try {
