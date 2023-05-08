@@ -56,14 +56,14 @@ exports.builder = yargsBuilder;
 exports.handler = async (argv) => {
   // create output folder structure
   const outputFolder = path.isAbsolute(argv.outputFolder)
-  ? argv.outputFolder
-  : path.join(process.cwd(), argv.outputFolder);
-  
+    ? argv.outputFolder
+    : path.join(process.cwd(), argv.outputFolder);
+
   // headless true unless --no-headless is passed
   const headless = argv.headless !== undefined ? argv.headless : true;
-  
+
   // skip-existing false unless --no-headless is passed
-  const skipExisting = argv.skipExisting !== undefined ? true : false;
+  const skipExisting = argv.skipExisting !== undefined;
 
   // execute preparation of the sections mapping
   return cliWorkerHandler('importer_cache_worker.js', {
