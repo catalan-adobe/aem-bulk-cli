@@ -35,7 +35,7 @@ function yargsBuilder(yargs) {
       describe: 'HTTP Timeout in seconds',
       type: 'number',
       default: 10,
-    })
+    });
 }
 
 /*
@@ -45,6 +45,4 @@ function yargsBuilder(yargs) {
 exports.desc = 'Check HTTP Status for a list of URLs';
 exports.builder = yargsBuilder;
 // exports.handler = cliWorkerHandler.bind(null, 'importer_check_urls_worker.js');
-exports.handler = async (argv) => {
-  return cliWorkerHandler('importer_check_urls_worker.js', { timeout: argv.timeout }, argv);
-};
+exports.handler = async (argv) => cliWorkerHandler('importer_check_urls_worker.js', { timeout: argv.timeout }, argv);

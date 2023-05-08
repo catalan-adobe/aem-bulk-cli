@@ -4,12 +4,17 @@ const readline = require('readline');
 const yargs = require('yargs');
 const { terminal } = require('terminal-kit');
 const { Worker } = require('worker_threads');
+const fp = require('find-free-port');
+const { getLogger } = require('./logger');
+
+const results = [];
+let urls = [];
 
 /*
  * Worker handlers
  */
 
-function workerMsgHandler(worker, urls, results, workerOptions, argv, result) {
+function workerMsgHandler(worker, workerOptions, port, workerId, result) {
   // store the result
   const idx = results.findIndex((r) => r.url === result.url);
   if (idx > -1) {
@@ -22,9 +27,10 @@ function workerMsgHandler(worker, urls, results, workerOptions, argv, result) {
     const url = urls.shift();
     results.push({ url, status: null });
     worker.postMessage({
+      idx: workerId,
+      port,
       line: urls.length - urls.length,
       options: workerOptions,
-      argv,
       url,
     });
   } else {
@@ -65,8 +71,8 @@ async function readLines() {
  */
 
 async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
-  let urls = [];
   let failedURLsFileStream;
+  const logger = getLogger('importer cache - cliWorkerHandler', (argv.verbose !== undefined ? 'debug' : null));
 
   // set worker script
   const workerScript = path.join(__dirname, '../workers/', workerScriptFilename);
@@ -84,7 +90,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
   }
 
   if (argv.errorFile) {
-    if(fs.existsSync(argv.errorFile)){
+    if (fs.existsSync(argv.errorFile)) {
       terminal.yellow(`[WARNING] Specified error file (${argv.errorFile}) already exists. Will overwrite.\n`);
       fs.truncateSync(argv.errorFile);
     }
@@ -94,51 +100,67 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
 
   // Array to keep track of the worker threads
   const workers = [];
-  const results = [];
 
   /*
   * Init workers
   */
 
-  const numWorkers = argv.workers;
+  const numWorkers = Math.min(argv.workers, urls.length);
+  const ports = await fp(9222, 9800, '127.0.0.1', numWorkers);
 
   terminal.green(`Processing ${urls.length} url(s) with ${numWorkers} worker(s)...\n`);
 
   // Start the workers
-  for (let i = 0; i < numWorkers; i += 1) {
-    const worker = new Worker(workerScript);
-    workers.push(worker);
-    // Handle worker exit
-    worker.on('exit', workerExitHandler.bind(null, workers));
-    // Listen for messages from the worker thread
-    worker.on('message', workerMsgHandler.bind(null, worker, urls, results, workerOptions, argv));
-  }
+  Promise.all((new Array(numWorkers)).fill(1).map((_, idx) => new Promise((resolve) => {
+    const w = idx * 10000;
 
-  // Send a URL to each worker
-  for (let i = 0; i < numWorkers; i += 1) {
-    const url = urls.shift();
-    if (url) {
-      results.push({ url, status: null });
-      workers[i].postMessage({
-        idx: i + 1,
-        options: workerOptions,
-        argv,
-        line: urls.length - urls.length,
-        url,
-      });
-    } else {
-      // If there are no more URLs, terminate the worker
-      workers[i].postMessage({ type: 'exit' });
-    }
-  }
+    logger.debug(`[${new Date().toISOString()}] waiting ${w}ms for worker ${idx + 1} to start...`);
 
-  return new Promise((resolve) => {
+    setTimeout(() => {
+      try {
+        const url = urls.shift();
+        if (url) {
+          logger.debug(`[${new Date().toISOString()}] OK, starting worker ${idx + 1}...`);
+          const worker = new Worker(workerScript, {
+            workerData: {
+              port: ports[idx],
+              idx: idx + 1,
+              workerOptions,
+            },
+          });
+          workers.push(worker);
+          // Handle worker exit
+          worker.on('exit', workerExitHandler.bind(null, workers));
+          // Listen for messages from the worker thread
+          worker.on('message', workerMsgHandler.bind(null, worker, workerOptions, ports[idx], idx + 1));
+
+          results.push({ url, status: null });
+          workers[idx].postMessage({
+            idx: idx + 1,
+            port: ports[idx],
+            options: workerOptions,
+            line: urls.length - urls.length,
+            url,
+          });
+        } else {
+          logger.debug(`[${new Date().toISOString()}] No new URLs to process, no need to start worker ${idx + 1}`);
+        }
+      } catch (e) {
+        logger.error('starting workder', idx, e);
+      } finally {
+        resolve();
+      }
+    }, w);
+  })));
+
+  const mainPromise = new Promise((resolve) => {
     // Handle ordered output
     const interval = setInterval(() => {
+      // console.log('display thread', results.length, results[0].status !== null);
       while (results.length > 0 && results[0].status !== null) {
         const result = results.shift();
         if (result.status.passed) {
-          terminal(` ✅ ${result.status.preMsg || ''}${result.url} ${result.status.postMsg || ''}\n`);
+          terminal(`${result.status.result === 'Skipped' ? ' ⏩' : ' ✅'} ${result.status.preMsg || ''}${result.url} ${result.status.postMsg || ''}\n`);
         } else {
           terminal(` ❌  ${result.url} - ^rError: ${result.status.result}^:\n`);
 
@@ -152,8 +174,10 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
         clearInterval(interval);
         resolve();
       }
-    }, 10);
+    }, 100);
   });
+
+  return mainPromise;
 }
 
 /*

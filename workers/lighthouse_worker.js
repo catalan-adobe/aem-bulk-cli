@@ -13,7 +13,9 @@ parentPort.on('message', async (msg) => {
     const importerLib = await import('franklin-bulk-shared');
 
     try {
-      const [browser, page] = await importerLib.Puppeteer.initBrowser();
+      const [browser, page] = await importerLib.Puppeteer.initBrowser({
+        port: msg.port,
+      });
 
       const result = await importerLib.Puppeteer.runStepsSequence(
         page,

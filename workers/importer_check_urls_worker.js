@@ -11,11 +11,10 @@ parentPort.on('message', async (msg) => {
     // If the parent thread sent 'exit', exit the worker thread
     process.exit();
   } else {
-    console.log(msg.options)
     try {
-      const url = msg.url;
+      const { url } = msg;
 
-      const response = await axios.head(url, {
+      const response = await axios.get(url, {
         timeout: msg.options.timeout * 1000,
       });
 
