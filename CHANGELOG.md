@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.1.0...v1.2.0) (2023-05-08)
+
+
+### Features
+
+* add franklin importer cache feature ([#9](https://github.com/catalan-adobe/franklin-bulk-cli/issues/9)) ([7a96640](https://github.com/catalan-adobe/franklin-bulk-cli/commit/7a966401eece0faa617b313bb456ddd3b3b7f2ba))
+
 # [1.1.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.0.4...v1.1.0) (2023-05-04)
 
 
