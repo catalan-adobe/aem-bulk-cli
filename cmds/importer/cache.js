@@ -7,6 +7,11 @@ const { cliWorkerHandler } = require('../../src/cliWorkerHandler');
 
 function yargsBuilder(yargs) {
   return yargs
+    .option('verbose', {
+      alias: 'v',
+      describe: 'Increase logging verbosity',
+      type: 'boolean',
+    })
     .option('interactive', {
       alias: 'i',
       describe: 'Start the application in interactive mode, you will be prompted to copy/paste the list of URLs directly in the terminal. Enter an empty line to finish the process',

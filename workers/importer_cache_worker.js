@@ -1,7 +1,9 @@
-const { parentPort, workerData, threadId } = require('worker_threads');
+const { parentPort, workerData } = require('worker_threads');
 const pUtils = require('path');
 const fs = require('fs');
-const { WORKER_LOGGER } = require('../src/logger');
+const { getWorkerLogger } = require('../src/logger');
+
+const logger = getWorkerLogger(workerData.idx);
 
 /*
  * Worker thread
@@ -13,76 +15,59 @@ parentPort.on('message', async (msg) => {
     // If the parent thread sent 'exit', exit the worker thread
     process.exit();
   } else {
-    console.log('threadId', threadId, workerData.idx, workerData.port, msg.port, msg.url);
-
-    const lll = WORKER_LOGGER.child({ workerId: `WORKER #${msg.idx}` });
-
-    lll.debug(`threadId ${threadId}, ${workerData.idx}, ${workerData.port}, ${msg.port}, ${msg.url}`);
-
+    logger.debug(`process URL ${msg.url}`);
     const importerLib = await import('franklin-bulk-shared');
 
-    let browser, page;
+    let browser;
+    let page;
 
     try {
       const u = new URL(msg.url);
-      const OUTPUT_FOLDER = pUtils.join(msg.options.outputFolder, u.hostname); // `${process.cwd()}/output`;
+      const OUTPUT_FOLDER = pUtils.join(msg.options.outputFolder, u.hostname);
 
       if (msg.options.skipExisting) {
         const [p, filename] = importerLib.Url.buildPathAndFilenameWithPathFromUrl(msg.url);
         const path = pUtils.join(OUTPUT_FOLDER, p);
-  
-        if (fs.existsSync(pUtils.join(path,filename))) {
-          lll.debug(`SKIPPED >>> ${msg.url}`);
-          console.log('SKIPPED >>>', threadId, msg.url);
 
+        if (fs.existsSync(pUtils.join(path, filename))) {
           parentPort.postMessage({
             url: msg.url,
             passed: true,
             result: 'Skipped',
           });
           return;
-        }  
+        }
       }
 
-      [browser, page] = await importerLib.Puppeteer.initBrowser({ 
+      [browser, page] = await importerLib.Puppeteer.initBrowser({
         port: msg.port,
-        headless: msg.options.headless
+        headless: msg.options.headless,
       });
-      
+
       await importerLib.Puppeteer.runStepsSequence(
         page,
         msg.url,
         [
           importerLib.Puppeteer.Steps.postLoadWait(1000),
-          importerLib.Puppeteer.Steps.GDPRAutoConsent(),
-          importerLib.Puppeteer.Steps.smartScroll(),
-          // importerLib.Puppeteer.Steps.execAsync(async (browserPage) => {
-          //   await browserPage.keyboard.press('Escape');
-          // }),
-          importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
-          importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
+          // importerLib.Puppeteer.Steps.GDPRAutoConsent(),
+          // importerLib.Puppeteer.Steps.smartScroll(),
+          // importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
+          // importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
         ],
-        lll,
+        logger,
       );
 
-      // cool down
-      await importerLib.Time.sleep(250);
+      // // cool down
+      // await importerLib.Time.sleep(250);
 
-      lll.debug('CLOSING BROWSER >>>');
-      await browser.close();
-      lll.debug('BROWSER CLOSED >>>');
-
-      lll.debug(`PASSED >>> ${msg.url}`);
-      console.log('PASSED >>>', threadId, msg.url);
-
+      logger.debug(`URL ${msg.url} done, success`);
       parentPort.postMessage({
         url: msg.url,
         passed: true,
         result: 'Success',
       });
     } catch (error) {
-      lll.debug( `FAILED >>> ${msg.url}, ${error.message}`);
-      console.log('FAILED >>>', threadId, msg.url);
+      logger.debug(`URL ${msg.url} done, failed`);
       parentPort.postMessage({
         url: msg.url,
         passed: false,
@@ -90,7 +75,7 @@ parentPort.on('message', async (msg) => {
       });
     } finally {
       if (browser) {
-        lll.debug('BROWSER STILL OPEN, CLOSE IT!! >>>');
+        logger.debug('closing browser ...');
         await browser.close();
       }
     }

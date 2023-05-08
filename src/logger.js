@@ -1,41 +1,51 @@
-const { createLogger, format, transports } = require("winston");
-const { combine, timestamp, label, prettyPrint } = format;
+const { createLogger, format, transports } = require('winston');
 
-let WORKER_LOGGER_INSTANCE;
+const { combine } = format;
+
+let LOGGER_INSTANCE = null;
+
+const DEFAULT_LOGGER_OPTIONS = {
+  level: 'info',
+  format: combine(
+    format.printf((info) => `[${info.name}][${info.level}] ${info.message}`),
+  ),
+  exitOnError: false,
+};
 
 const setupLogger = () => {
-  if (WORKER_LOGGER_INSTANCE !== null && WORKER_LOGGER_INSTANCE !== undefined) {
-    return WORKER_LOGGER_INSTANCE;
+  if (LOGGER_INSTANCE !== null && LOGGER_INSTANCE !== undefined) {
+    return LOGGER_INSTANCE;
   }
+  const localLogger = createLogger(DEFAULT_LOGGER_OPTIONS);
+  return localLogger;
+};
 
-  let local_logger = createLogger({
-    level: "info",
-    format: combine(
-      // // format.colorize(),
-      format.timestamp({
-        format: 'YYYY-MM-DD HH:mm:ss',
-      }),
-      // label({ label: 'worker' }),
-      // format.simple((info, opts) => {
-      //   console.log(info);
-      //   return info;
-      // }),
-      format.printf((info) => {
-        // console.log(info);
-        return `[${info.workerId}][${info.level}][${info.timestamp}] ${info.message}`;
-      }),
-      // format.splat(),
-      // // timestamp(),
-      // // prettyPrint(),
-    ),
-      exitOnError: false,
-    transports: [
-      new transports.File({ filename:  'workers.log', level: "debug"}),
-    ],
-  });
-  return local_logger;
+function getLogger(name, level = 'error') {
+  const wl = LOGGER_INSTANCE.child({ name });
+  wl.add(
+    new transports.Console({ level }),
+  );
+  return wl;
 }
 
-WORKER_LOGGER_INSTANCE = setupLogger();
+function getWorkerLogger(workerId, level = 'debug') {
+  const wl = LOGGER_INSTANCE.child({ workerId });
+  wl.add(
+    new transports.File({
+      filename: `worker_${parseInt(workerId, 10) < 10 ? '0' : ''}${workerId}.log`,
+      format: combine(
+        format.timestamp({
+          format: 'YYYY-MM-DD HH:mm:ss',
+        }),
+        format.printf((info) => `[${info.workerId}][${info.level}][${info.timestamp}] ${info.message}`),
+      ),
+      level,
+    }),
+  );
+  return wl;
+}
 
-exports.WORKER_LOGGER = WORKER_LOGGER_INSTANCE;
+LOGGER_INSTANCE = setupLogger();
+
+exports.getWorkerLogger = getWorkerLogger;
+exports.getLogger = getLogger;
