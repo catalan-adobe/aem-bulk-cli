@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.2.0...v1.2.1) (2023-05-15)
+
+
+### Bug Fixes
+
+* importer command was not doing anything ([e9d4ed6](https://github.com/catalan-adobe/franklin-bulk-cli/commit/e9d4ed607d72aa028ce6dc9b354d1d98ad1233af))
+
 # [1.2.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.1.0...v1.2.0) (2023-05-08)
 
 
