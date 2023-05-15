@@ -49,16 +49,16 @@ parentPort.on('message', async (msg) => {
         msg.url,
         [
           importerLib.Puppeteer.Steps.postLoadWait(1000),
-          // importerLib.Puppeteer.Steps.GDPRAutoConsent(),
-          // importerLib.Puppeteer.Steps.smartScroll(),
-          // importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
-          // importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
+          importerLib.Puppeteer.Steps.GDPRAutoConsent(),
+          importerLib.Puppeteer.Steps.smartScroll(),
+          importerLib.Puppeteer.Steps.cacheResources({ outputFolder: OUTPUT_FOLDER }),
+          importerLib.Puppeteer.Steps.fullPageScreenshot({ outputFolder: OUTPUT_FOLDER }),
         ],
         logger,
       );
 
-      // // cool down
-      // await importerLib.Time.sleep(250);
+      // cool down
+      await importerLib.Time.sleep(250);
 
       logger.debug(`URL ${msg.url} done, success`);
       parentPort.postMessage({
