@@ -1,6 +1,6 @@
 {
   "name": "franklin-bulk",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A CLI tool for Franklin bulk operations",
   "bin": "index.js",
   "repository": {
@@ -26,7 +26,7 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^8.0.7",
     "@semantic-release/npm": "^10.0.2",
-    "eslint": "8.40.0",
+    "eslint": "8.41.0",
     "eslint-config-airbnb-base": "15.0.0",
     "eslint-plugin-import": "2.27.5",
     "semantic-release": "^21.0.0"
