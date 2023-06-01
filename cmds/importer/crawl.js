@@ -56,21 +56,23 @@ function yargsBuilder(yargs) {
 async function handleSitemaps(queue, sitemaps, options = {}) {
   const fBulk = await import('franklin-bulk-shared');
 
-  if (options.simpleFilter) {
-    sitemaps = sitemaps.filter((sitemap) => sitemap.indexOf(options.simpleFilter) !== -1);
-  }
+  const ss = options.simpleFilter
+    ? sitemaps.filter((sitemap) => sitemap.indexOf(options.simpleFilter) !== -1)
+    : sitemaps;
 
-  sitemaps.forEach((s) => console.log(`new sitemap to crawl ${s}`));
+  // eslint-disable-next-line no-console
+  ss.forEach((s) => console.log(`new sitemap to crawl ${s}`));
 
-  sitemaps.forEach(async (sitemap) => {
+  ss.forEach(async (sitemap) => {
     if (sitemap.indexOf('.rss') === -1) {
       try {
         await queue.add(async () => {
-          try {  
+          try {
+            // eslint-disable-next-line no-console
             console.log('crawling sitemap', sitemap);
             const s = await fBulk.Web.parseSitemapFromUrl(sitemap, { timeout: options.timeout });
             if (s.sitemaps && s.sitemaps.length > 0) {
-              await handleSitemaps(queue, s.sitemaps.map((s) => s.url), options);
+              await handleSitemaps(queue, s.sitemaps.map((o) => o.url), options);
             }
             return s;
           } catch (e) {
@@ -95,11 +97,12 @@ exports.handler = async (argv) => {
 
   try {
     const fBulk = await import('franklin-bulk-shared');
-    const PQueue = await import('p-queue');
-    
+    /* eslint import/no-unresolved: "off" */
+    const PQueue = (await import('p-queue')).default;
+
     // init constants from CLI args
     // crawl workers
-    const workers = argv.workers;
+    const { workers } = argv;
     // validate origin URL
     const originUrl = new URL(argv.origin).href;
     // validate simple filter
@@ -120,8 +123,8 @@ exports.handler = async (argv) => {
 
     // create stream to save the list of discovered URLs
     const outputFile = path.isAbsolute(argv.outputFile)
-    ? argv.outputFile
-    : path.join(process.cwd(), argv.outputFile);
+      ? argv.outputFile
+      : path.join(process.cwd(), argv.outputFile);
     if (!(await fs.existsSync(path.dirname(outputFile)))) {
       fs.mkdirSync(path.dirname(outputFile), { recursive: true });
     }
@@ -136,9 +139,9 @@ exports.handler = async (argv) => {
     } else {
       throw new Error(`unsupported origin URL (${originUrl}) it should point to a robots.txt or a sitemap`);
     }
- 
+
     // init work queue
-    const queue = new PQueue.default({
+    const queue = new PQueue({
       concurrency: workers,
       autoStart: false,
     });
@@ -146,22 +149,24 @@ exports.handler = async (argv) => {
     // triggered each time a job is completed
     queue.on('completed', async (result) => {
       if (result?.urls) {
-          console.log(`done parsing sitemap ${result.url}, found ${result.urls?.length || 0} url(s) and ${result.sitemaps?.length || 0} sitemap(s)`);
-          urlsFileStream.write(result.urls.map((u) => u.url).join('\n'));
-          urlsFileStream.write('\n');
-        }
+        // eslint-disable-next-line no-console
+        console.log(`done parsing sitemap ${result.url}, found ${result.urls?.length || 0} url(s) and ${result.sitemaps?.length || 0} sitemap(s)`);
+        urlsFileStream.write(result.urls.map((u) => u.url).join('\n'));
+        urlsFileStream.write('\n');
+      }
     });
-      
+
     // concatenate errors and only display them at the end
-    queue.on('error', error => {
+    queue.on('error', (error) => {
       errors.push(error);
     });
 
     // crawl is done
     // when the queue is idle, display result + errors
     queue.on('idle', () => {
-      terminal.green(`Crawling done!\n`);
+      terminal.green('Crawling done!\n');
       if (errors.length > 0) {
+        // eslint-disable-next-line no-console
         console.log('errors:', errors.map((e) => e.message));
       }
     });
@@ -171,13 +176,11 @@ exports.handler = async (argv) => {
     // start crawling
     queue.start();
 
-    await new Promise((resolve, reject) => {
+    await new Promise((resolve) => {
       queue.on('idle', () => {
         resolve();
       });
     });
-
-
   } catch (e) {
     terminal.red(`\n${e.message}\n`);
     throw new Error(`crawler failed: ${e.message}`);
