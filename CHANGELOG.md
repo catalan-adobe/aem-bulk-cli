@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.2.2...v1.3.0) (2023-06-01)
+
+
+### Features
+
+* add new importer command to crawl robots.txt + sitemaps ([#13](https://github.com/catalan-adobe/franklin-bulk-cli/issues/13)) ([2f9332d](https://github.com/catalan-adobe/franklin-bulk-cli/commit/2f9332deef81d0e05288915f2a203d678bf5b6d4))
+* add new importer command to crawl robots.txt + sitemaps ([#13](https://github.com/catalan-adobe/franklin-bulk-cli/issues/13)) ([d7e5f94](https://github.com/catalan-adobe/franklin-bulk-cli/commit/d7e5f946e84f36ac8dcbba455f5edf0826fc21da))
+
 ## [1.2.2](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.2.1...v1.2.2) (2023-05-27)
 
 
