@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.3.0...v1.3.1) (2023-06-24)
+
+
+### Bug Fixes
+
+* **deps:** update dependency franklin-bulk-shared to v1.5.0 ([a7efbe2](https://github.com/catalan-adobe/franklin-bulk-cli/commit/a7efbe205de3a47533a1cd2ecd7676301a4ade6d))
+
 # [1.3.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.2.2...v1.3.0) (2023-06-01)
 
 
