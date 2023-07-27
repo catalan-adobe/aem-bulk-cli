@@ -112,7 +112,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
 
   // Start the workers
   Promise.all((new Array(numWorkers)).fill(1).map((_, idx) => new Promise((resolve) => {
-    const w = idx * 10000;
+    const w = idx * 2000;
 
     logger.debug(`[${new Date().toISOString()}] waiting ${w}ms for worker ${idx + 1} to start...`);
 
