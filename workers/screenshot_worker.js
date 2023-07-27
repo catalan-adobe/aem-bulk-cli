@@ -13,22 +13,33 @@ parentPort.on('message', async (msg) => {
     const importerLib = await import('franklin-bulk-shared');
 
     try {
-      const OUTPUT_FOLDER = `${process.cwd()}/output`;
+      const OUTPUT_FOLDER = msg.options.outputFolder;
 
       const [browser, page] = await importerLib.Puppeteer.initBrowser({
+        width: msg.options.pageWidth,
+        adBlocker: msg.options.adBlocker,
+        gdprBlocker: msg.options.gdprBlocker,
         port: msg.port,
+        headless: msg.options.headless,
+        useLocalChrome: msg.options.useLocalChrome,
       });
 
       await importerLib.Puppeteer.runStepsSequence(
         page,
         msg.url,
         [
-          importerLib.Puppeteer.Steps.postLoadWait(500),
-          importerLib.Puppeteer.Steps.GDPRAutoConsent(),
-          importerLib.Puppeteer.Steps.smartScroll(),
+          importerLib.Puppeteer.Steps.postLoadWait(msg.options.postLoadWait),
           importerLib.Puppeteer.Steps.execAsync(async (browserPage) => {
-            await browserPage.keyboard.press('Escape');
+            if (msg.options.injectJs) {
+              await browserPage.evaluate(msg.options.injectJs);
+            }
+            if (msg.options.removeSelectors.length > 0) {
+              await browserPage.evaluate((selector) => {
+                document.querySelectorAll(selector).forEach((el) => el.remove());
+              }, msg.options.removeSelectors.join(', '));
+            }
           }),
+          importerLib.Puppeteer.Steps.smartScroll(),
           importerLib.Puppeteer.Steps.fullPageScreenshot({
             outputFolder: OUTPUT_FOLDER,
           }),
