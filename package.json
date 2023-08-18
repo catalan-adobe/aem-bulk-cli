@@ -15,7 +15,7 @@
   "dependencies": {
     "axios": "1.4.0",
     "find-free-port": "^2.0.0",
-    "franklin-bulk-shared": "1.9.0",
+    "franklin-bulk-shared": "1.11.0",
     "p-queue": "^7.3.4",
     "terminal-kit": "3.0.0",
     "winston": "^3.8.2",
@@ -26,9 +26,9 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^8.0.7",
     "@semantic-release/npm": "^10.0.2",
-    "eslint": "8.45.0",
+    "eslint": "8.47.0",
     "eslint-config-airbnb-base": "15.0.0",
-    "eslint-plugin-import": "2.27.5",
+    "eslint-plugin-import": "2.28.1",
     "semantic-release": "^21.0.0"
   }
 }
