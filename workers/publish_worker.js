@@ -1,5 +1,8 @@
 const { parentPort } = require('worker_threads');
 const axios = require('axios');
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
 
 const FRANKLIN_API_HOST = 'https://admin.hlx.page';
 
@@ -33,8 +36,29 @@ parentPort.on('message', async (msg) => {
 
     try {
       const url = buildAPIURL(franklinStage, msg.url);
+      let reqOptions = null;
 
-      const response = await axios.post(url);
+      // authentication
+      let auth_token = null;
+      const authFile = path.join(os.homedir(), '.frk-cli-credentials.json');
+      if (process.env['FRANKLIN_API_TOKEN']) {
+        auth_token = process.env['FRANKLIN_API_TOKEN'];
+      } else if (fs.existsSync(authFile)) {
+        const credentials = JSON.parse(fs.readFileSync(authFile));
+        if (url.includes(credentials.path)) {
+          auth_token = credentials.auth_token;
+        }
+      }
+
+      if (auth_token) {
+        reqOptions = {
+          headers: {
+            'X-Auth-Token': auth_token,
+          },
+        }
+      }
+
+      const response = await axios.post(url, null, reqOptions);
 
       parentPort.postMessage({
         url: msg.url,
