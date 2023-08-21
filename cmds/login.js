@@ -17,9 +17,8 @@ function yargsBuilder(yargs) {
       type: 'string',
     })
     .demandOption(['p'])
-  
-    .help('h');
 
+    .help('h');
 }
 
 /*
@@ -36,26 +35,30 @@ exports.handler = async (argv) => {
   const importerLib = await import('franklin-bulk-shared');
 
   try {
-
-    [browser, _page] = await importerLib.Puppeteer.initBrowser({
+    [browser] = await importerLib.Puppeteer.initBrowser({
       headless: false,
       adBlocker: false,
       gdprBlocker: false,
       userDataDir: path.join(os.tmpdir(), '.franklin-bulk-shared-chrome-data'),
     });
-  
+
     // Create a page
     const page = await browser.newPage();
-  
-    page.on('load', async response => {
+
+    // global timeout
+    const globalTimeout = setTimeout(() => {
+      throw new Error('Timeout');
+    }, 120000);
+
+    page.on('load', async () => {
       const cookies = await page.cookies();
-      const cookie = cookies.find(c => c.name === 'auth_token');
-  
+      const cookie = cookies.find((c) => c.name === 'auth_token');
+
       if (cookie) {
         await browser.close();
-        
+
         const credentialsFile = path.join(os.homedir(), '.frk-cli-credentials.json');
-      
+
         await fs.writeFileSync(credentialsFile, JSON.stringify({
           path: frkPath,
           auth_token: decodeURIComponent(cookie.value),
@@ -63,14 +66,10 @@ exports.handler = async (argv) => {
         clearTimeout(globalTimeout);
       }
     });
-  
-    await page.goto(`https://admin.hlx.page/login${frkPath}`);
 
-    // global timeout
-    const globalTimeout = setTimeout(() => {
-      throw new Error('Timeout');
-    }, 120000);
+    await page.goto(`https://admin.hlx.page/login${frkPath}`);
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.error(e.message);
     if (browser) {
       await browser.close();

@@ -39,23 +39,23 @@ parentPort.on('message', async (msg) => {
       let reqOptions = null;
 
       // authentication
-      let auth_token = null;
+      let authToken = null;
       const authFile = path.join(os.homedir(), '.frk-cli-credentials.json');
-      if (process.env['FRANKLIN_API_TOKEN']) {
-        auth_token = process.env['FRANKLIN_API_TOKEN'];
+      if (process.env.FRANKLIN_API_TOKEN) {
+        authToken = process.env.FRANKLIN_API_TOKEN;
       } else if (fs.existsSync(authFile)) {
         const credentials = JSON.parse(fs.readFileSync(authFile));
         if (url.includes(credentials.path)) {
-          auth_token = credentials.auth_token;
+          authToken = credentials.auth_token;
         }
       }
 
-      if (auth_token) {
+      if (authToken) {
         reqOptions = {
           headers: {
-            'X-Auth-Token': auth_token,
+            'X-Auth-Token': authToken,
           },
-        }
+        };
       }
 
       const response = await axios.post(url, null, reqOptions);

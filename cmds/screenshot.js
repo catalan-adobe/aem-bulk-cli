@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 // imports
-const { cliWorkerHandler } = require('../src/cliWorkerHandler');
 const path = require('path');
+const { terminal } = require('terminal-kit');
+const { cliWorkerHandler } = require('../src/cliWorkerHandler');
 
 /*
  * CLI Command parameters
@@ -89,9 +90,8 @@ function yargsBuilder(yargs) {
       describe: 'Verbose mode',
       type: 'boolean',
     })
-  
-    .help('h');
 
+    .help('h');
 }
 
 /*
@@ -106,12 +106,12 @@ exports.handler = async (argv) => {
     ? argv.outputFolder
     : path.join(process.cwd(), argv.outputFolder);
 
-  const adBlocker = argv.adBlocker === false ? false : true;
-  const gdprBlocker = argv.gdprBlocker === false ? false : true;
-  const headless = argv.headless === false ? false : true;
+  const adBlocker = argv.adBlocker !== false;
+  const gdprBlocker = argv.gdprBlocker !== false;
+  const headless = argv.headless !== false;
   const removeSelectors = argv.removeSelector || [];
-  const useLocalChrome = argv.useLocalChrome === true ? true : false;
-    
+  const useLocalChrome = argv.useLocalChrome === true;
+
   // execute preparation of the sections mapping
   return cliWorkerHandler('screenshot_worker.js', {
     adBlocker,

@@ -41,7 +41,7 @@ function defaultCLICmdWithWorkerYargsBuilder(yargs) {
       describe: 'Verbose mode',
       type: 'boolean',
     })
-  
+
     .help('h');
 }
 
