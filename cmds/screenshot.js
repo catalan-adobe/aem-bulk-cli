@@ -26,6 +26,11 @@ function yargsBuilder(yargs) {
       type: 'string',
     })
     .conflicts('f', 'i')
+    .option('list-breaker', {
+      describe: 'The character to use to signal end of the list in interactive mode. Default is empty line',
+      type: 'string',
+      default: '',
+    })
     .option('workers', {
       alias: 'w',
       describe: 'Number of workers to use (max. 5)',
@@ -96,7 +101,6 @@ function yargsBuilder(yargs) {
 exports.desc = 'Take full page screenshot for the given list of URLs';
 exports.builder = yargsBuilder;
 exports.handler = async (argv) => {
-  console.log('argv', argv)
   // create output folder structure
   const outputFolder = path.isAbsolute(argv.outputFolder)
     ? argv.outputFolder
