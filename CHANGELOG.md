@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.3.2...v1.4.0) (2023-08-21)
+
+
+### Features
+
+* add new options to screenshot command ([81d6fb1](https://github.com/catalan-adobe/franklin-bulk-cli/commit/81d6fb1bb7c0621a9c1ceb527cd0450f05b623c7))
+
 ## [1.3.2](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.3.1...v1.3.2) (2023-07-08)
 
 
