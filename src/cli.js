@@ -1,7 +1,7 @@
 const readline = require('readline');
 const { terminal } = require('terminal-kit');
 
-async function readLines() {
+async function readLines(breaker) {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -13,10 +13,12 @@ async function readLines() {
 
   /* eslint-disable-next-line no-restricted-syntax */
   for await (const input of rl) {
-    if (input === '') {
+    if (input === breaker) {
       break;
     }
-    lines.push(input);
+    if (input !== '') {
+      lines.push(input);
+    }
   }
 
   rl.close();

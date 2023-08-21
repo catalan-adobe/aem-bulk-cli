@@ -32,6 +32,11 @@ function defaultCLICmdWithWorkerYargsBuilder(yargs) {
         return value;
       },
     })
+    .option('list-breaker', {
+      describe: 'The character to use to signal end of the list in interactive mode. Default is empty line',
+      type: 'string',
+      default: '',
+    })
     .option('verbose', {
       describe: 'Verbose mode',
       type: 'boolean',

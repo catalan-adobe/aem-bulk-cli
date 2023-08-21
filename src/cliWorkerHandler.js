@@ -56,7 +56,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
 
   // parse URLs
   if (argv.interactive) {
-    urls = await readLines();
+    urls = await readLines(argv.listBreaker);
   } else if (argv.file) {
     // Read the list of URLs from the file
     urls = fs.readFileSync(argv.file, 'utf-8').split('\n').filter(Boolean);
