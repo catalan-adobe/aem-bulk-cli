@@ -27,11 +27,11 @@
   "devDependencies": {
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/git": "10.0.1",
-    "@semantic-release/github": "9.0.5",
-    "@semantic-release/npm": "10.0.5",
+    "@semantic-release/github": "9.0.6",
+    "@semantic-release/npm": "10.0.6",
     "eslint": "8.49.0",
     "eslint-config-airbnb-base": "15.0.0",
     "eslint-plugin-import": "2.28.1",
-    "semantic-release": "21.1.1"
+    "semantic-release": "21.1.2"
   }
 }
