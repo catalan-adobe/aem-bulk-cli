@@ -1,3 +1,18 @@
+# [1.4.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.3.2...v1.4.0) (2023-09-30)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([f0fe503](https://github.com/catalan-adobe/franklin-bulk-cli/commit/f0fe50396cd29d41eb25e680ebc6b21a9da984ee))
+
+
+### Features
+
+* add authentication for publish actions ([6fceada](https://github.com/catalan-adobe/franklin-bulk-cli/commit/6fceada4189d080b6829f50b8b846d1e3783f40d))
+* add global option to customize list break character in interactive mode ([b485df8](https://github.com/catalan-adobe/franklin-bulk-cli/commit/b485df8dad49d8e731e4007401b7b871a95412d5))
+* add login command to get franklin api token ([696139b](https://github.com/catalan-adobe/franklin-bulk-cli/commit/696139b1b020a2682f78eb0fa7075237a794e540))
+* add new options to screenshot command ([81d6fb1](https://github.com/catalan-adobe/franklin-bulk-cli/commit/81d6fb1bb7c0621a9c1ceb527cd0450f05b623c7))
+
 # [1.4.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.3.2...v1.4.0) (2023-09-23)
 
 
