@@ -20,7 +20,7 @@
     "got": "13.0.0",
     "jsdom": "22.1.0",
     "p-queue": "7.4.1",
-    "terminal-kit": "3.0.0",
+    "terminal-kit": "3.0.1",
     "winston": "3.11.0",
     "yargs": "17.7.2"
   },
