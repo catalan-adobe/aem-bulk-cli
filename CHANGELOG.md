@@ -34,6 +34,24 @@
 * add new options to screenshot command ([81d6fb1](https://github.com/catalan-adobe/franklin-bulk-cli/commit/81d6fb1bb7c0621a9c1ceb527cd0450f05b623c7))
 * add option to use google psi api for lighthouse checks + excel report ([c65fca1](https://github.com/catalan-adobe/franklin-bulk-cli/commit/c65fca1b9608c42dc6935755287956c8b7410e22))
 
+# [1.4.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.3.2...v1.4.0) (2023-10-20)
+
+
+### Bug Fixes
+
+* **deps:** update dependency terminal-kit to v3.0.1 ([4f1effd](https://github.com/catalan-adobe/franklin-bulk-cli/commit/4f1effd9c15bd18c9ecd62a2fa87eafb8b66024e))
+* **deps:** update dependency winston to v3.11.0 ([8db207a](https://github.com/catalan-adobe/franklin-bulk-cli/commit/8db207a4de1a05385e546578a049fb299bfa0068))
+* **deps:** update external fixes ([f0fe503](https://github.com/catalan-adobe/franklin-bulk-cli/commit/f0fe50396cd29d41eb25e680ebc6b21a9da984ee))
+
+
+### Features
+
+* add authentication for publish actions ([6fceada](https://github.com/catalan-adobe/franklin-bulk-cli/commit/6fceada4189d080b6829f50b8b846d1e3783f40d))
+* add global option to customize list break character in interactive mode ([b485df8](https://github.com/catalan-adobe/franklin-bulk-cli/commit/b485df8dad49d8e731e4007401b7b871a95412d5))
+* add login command to get franklin api token ([696139b](https://github.com/catalan-adobe/franklin-bulk-cli/commit/696139b1b020a2682f78eb0fa7075237a794e540))
+* add new options to screenshot command ([81d6fb1](https://github.com/catalan-adobe/franklin-bulk-cli/commit/81d6fb1bb7c0621a9c1ceb527cd0450f05b623c7))
+* add option to use google psi api for lighthouse checks + excel report ([c65fca1](https://github.com/catalan-adobe/franklin-bulk-cli/commit/c65fca1b9608c42dc6935755287956c8b7410e22))
+
 # [1.4.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.3.2...v1.4.0) (2023-10-14)
 
 
