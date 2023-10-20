@@ -1,7 +1,78 @@
 const { parentPort } = require('worker_threads');
+const { randomUUID } = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
-/*
- * Worker thread
+/**
+ * functions
+ */
+
+const runLighthouse = (url, apiKey) => new Promise(async (resolve, reject) => {
+  const execId = randomUUID();
+
+  try {
+    const startTime = Date.now();
+    const psiURL = `https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO&strategy=MOBILE&key=${apiKey}`
+    const uuid = randomUUID();
+
+    console.log(`[${uuid}][${now()}][${url}] start PSI check`);
+
+    let res = await fetch(psiURL, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!res.ok) {
+      console.log(`[${uuid}][${now()}][${url}]`, 'psi error 01', res.ok, res.status, res.statusText);      
+      res = await fetch(psiURL, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });  
+    }
+
+    if (!res.ok) {
+      console.log(`[${uuid}][${now()}][${url}]`, 'psi error 02', res.ok, res.status, res.statusText);      
+      res = await fetch(psiURL, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });  
+    }
+
+    if (!res.ok) {
+      console.log(`[${uuid}][${now()}][${url}]`, 'psi error 03', res.ok, res.status, res.statusText);      
+      throw new Error(`PSI error: ${res.status} ${res.statusText}`);
+    }
+
+    const duration = Date.now() - startTime;
+    const report = await res.json();
+    const timestamp = new Date().toISOString();
+
+    console.log(`[${uuid}][${now()}][${url}] PSI check done in ${duration}ms`);
+
+    resolve({
+      execId,
+      url,
+      report,
+      duration,
+      timestamp,
+    });
+  } catch (error) {
+    reject(error);
+  }
+});
+
+function now() {
+  return new Date().toISOString();
+}
+
+/**
+ * worker thread
  */
 
 // Listen for messages from the parent thread
@@ -10,33 +81,56 @@ parentPort.on('message', async (msg) => {
     // If the parent thread sent 'exit', exit the worker thread
     process.exit();
   } else {
-    const importerLib = await import('franklin-bulk-shared');
-
+    // console.log(msg);
+    const psiType = msg.options.argv.psiType;
+    
     try {
-      const [browser, page] = await importerLib.Puppeteer.initBrowser({
-        port: msg.port,
-      });
+      if (psiType === 'local') {
+        const importerLib = await import('franklin-bulk-shared');
+  
+        const [browser, page] = await importerLib.Puppeteer.initBrowser({
+          port: msg.port,
+        });
+  
+        const result = await importerLib.Puppeteer.runStepsSequence(
+          page,
+          msg.url,
+          [
+            importerLib.Puppeteer.Steps.runLighthouseCheck(),
+          ],
+        );
+  
+        // cool down
+        await importerLib.Time.sleep(250);
+  
+        await browser.close();
+  
+        parentPort.postMessage({
+          url: msg.url,
+          passed: true,
+          result: 'Success',
+          postMsg: `: LH (${result.lighthouse.version}) Scores: ${Object.keys(result.lighthouse.scores).map((k) => `${k}: ${result.lighthouse.scores[k].score}`).join(', ')} `,
+        });
+      } else if (psiType === 'google') {
+        const result = await runLighthouse(msg.url, msg.options.argv.googleApiKey);
+    
+        // write result to file
+        fs.writeFileSync(path.join(msg.options.reportsFolder, `${result.execId}.json`), JSON.stringify(result, null, 2));
+  
+        const categories = [ 'performance', 'accessibility', 'best-practices', 'seo' ];
 
-      const result = await importerLib.Puppeteer.runStepsSequence(
-        page,
-        msg.url,
-        [
-          importerLib.Puppeteer.Steps.runLighthouseCheck(),
-        ],
-      );
-
-      // cool down
-      await importerLib.Time.sleep(250);
-
-      await browser.close();
-
-      parentPort.postMessage({
-        url: msg.url,
-        passed: true,
-        result: 'Success',
-        preMsg: `LH (${result.lighthouse.version}) Scores: ${Object.keys(result.lighthouse.scores).map((k) => `${k}: ${result.lighthouse.scores[k].score}`).join(', ')} `,
-      });
+        parentPort.postMessage({
+          url: msg.url,
+          passed: true,
+          result: 'Success',
+          postMsg: `: LH (${result.report.lighthouseResult.lighthouseVersion}) Scores: ${categories.map((k) => `${k}: ${result.report.lighthouseResult.categories[k].score}`).join(', ')} `,
+          report: result,
+        });
+      } else {
+        throw new Error(`Unsupported PSI type ${psiType}`);
+      }
     } catch (error) {
+      console.log(error);
       parentPort.postMessage({
         url: msg.url,
         passed: false,

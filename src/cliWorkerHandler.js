@@ -14,12 +14,16 @@ let urls = [];
  * Worker handlers
  */
 
-function workerMsgHandler(worker, workerOptions, port, workerId, result) {
+async function workerMsgHandler(worker, workerOptions, port, workerId, onMessageFn, result) {
   // store the result
   const idx = results.findIndex((r) => r.url === result.url);
   if (idx > -1) {
     /* eslint-disable-next-line no-param-reassign */
     results[idx].status = result;
+  }
+
+  if (onMessageFn) {
+    await onMessageFn(result);
   }
 
   // If there are more URLs, send one to the worker
@@ -47,7 +51,12 @@ function workerExitHandler(workers) {
  * Main Handler for CLI commands with worker threads
  */
 
-async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
+async function cliWorkerHandler(workerScriptFilename, workerOptions, argv, onMessageFn) {
+  workerOptions = {
+    ...workerOptions,
+    argv,
+  };
+
   let failedURLsFileStream;
   const logger = getLogger('importer cache - cliWorkerHandler', (argv.verbose !== undefined ? 'debug' : null));
 
@@ -109,7 +118,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
           // Handle worker exit
           worker.on('exit', workerExitHandler.bind(null, workers));
           // Listen for messages from the worker thread
-          worker.on('message', workerMsgHandler.bind(null, worker, workerOptions, ports[idx], idx + 1));
+          worker.on('message', workerMsgHandler.bind(null, worker, workerOptions, ports[idx], idx + 1, onMessageFn));
 
           results.push({ url, status: null });
           workers[idx].postMessage({
@@ -123,7 +132,7 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv) {
           logger.debug(`[${new Date().toISOString()}] No new URLs to process, no need to start worker ${idx + 1}`);
         }
       } catch (e) {
-        logger.error('starting workder', idx, e);
+        logger.error('starting worker', idx, e);
       } finally {
         resolve();
       }
