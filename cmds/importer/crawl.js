@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { terminal } = require('terminal-kit');
+const ExcelJS = require('exceljs');
 
 /*
  * CLI Command parameters
@@ -26,6 +27,12 @@ function yargsBuilder(yargs) {
       alias: 'f',
       describe: 'File where to save the list of discovered URLs',
       default: 'urls.txt',
+      type: 'string',
+    })
+    .option('excel-report', {
+      alias: 'e',
+      describe: 'Path to Excel report file for the found URLs',
+      default: 'urls-report.xlsx',
       type: 'string',
     })
     .option('workers', {
@@ -94,6 +101,7 @@ exports.desc = 'Collect URLs from robots.txt and sitemaps';
 exports.builder = yargsBuilder;
 exports.handler = async (argv) => {
   let urlsFileStream;
+  const urls = [];
 
   try {
     const fBulk = await import('franklin-bulk-shared');
@@ -151,6 +159,7 @@ exports.handler = async (argv) => {
       if (result?.urls) {
         // eslint-disable-next-line no-console
         console.log(`done parsing sitemap ${result.url}, found ${result.urls?.length || 0} url(s) and ${result.sitemaps?.length || 0} sitemap(s)`);
+        urls.push(...result.urls);
         urlsFileStream.write(result.urls.map((u) => u.url).join('\n'));
         urlsFileStream.write('\n');
       }
@@ -181,6 +190,36 @@ exports.handler = async (argv) => {
         resolve();
       });
     });
+
+    if (argv.excelReport) {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('report');
+    
+      const headers = ['URL', 'path', 'path level 1', 'path level 2', 'path level 3', 'filename'];
+    
+      // create Excel auto Filters for the first row / header
+      worksheet.autoFilter = {
+        from: 'A1',
+        to: `${String.fromCharCode(65 + headers.length - 1)}1`, // 65 = 'A'...
+      };
+    
+      worksheet.addRows([
+        headers,
+      ].concat(urls.map((row) => {
+        const u = new URL(row.url);
+        const levels = u.pathname.split('/');
+        const filename = levels[levels.length - 1];
+        while (levels.length < 4) {
+          levels.push('');
+        }
+        const r = [row.url, u.pathname].concat(levels.slice(1, 4).map((l, idx) => {
+          return (l === filename) ? ('') : (l || ' ')
+        }));
+        r.push(filename);
+        return r;
+      })));
+      await workbook.xlsx.writeFile(argv.excelReport);
+    }
   } catch (e) {
     terminal.red(`\n${e.message}\n`);
     throw new Error(`crawler failed: ${e.message}`);
