@@ -7,53 +7,28 @@ const path = require('path');
  * functions
  */
 
+/* eslint-disable no-async-promise-executor */
 const runLighthouse = (url, apiKey) => new Promise(async (resolve, reject) => {
   const execId = randomUUID();
 
   try {
     const startTime = Date.now();
-    const psiURL = `https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO&strategy=MOBILE&key=${apiKey}`
-    const uuid = randomUUID();
+    const psiURL = `https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO&strategy=MOBILE&key=${apiKey}`;
 
-    console.log(`[${uuid}][${now()}][${url}] start PSI check`);
-
-    let res = await fetch(psiURL, {
+    const res = await fetch(psiURL, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     });
 
     if (!res.ok) {
-      console.log(`[${uuid}][${now()}][${url}]`, 'psi error 01', res.ok, res.status, res.statusText);      
-      res = await fetch(psiURL, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });  
-    }
-
-    if (!res.ok) {
-      console.log(`[${uuid}][${now()}][${url}]`, 'psi error 02', res.ok, res.status, res.statusText);      
-      res = await fetch(psiURL, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });  
-    }
-
-    if (!res.ok) {
-      console.log(`[${uuid}][${now()}][${url}]`, 'psi error 03', res.ok, res.status, res.statusText);      
       throw new Error(`PSI error: ${res.status} ${res.statusText}`);
     }
 
     const duration = Date.now() - startTime;
     const report = await res.json();
     const timestamp = new Date().toISOString();
-
-    console.log(`[${uuid}][${now()}][${url}] PSI check done in ${duration}ms`);
 
     resolve({
       execId,
@@ -67,10 +42,6 @@ const runLighthouse = (url, apiKey) => new Promise(async (resolve, reject) => {
   }
 });
 
-function now() {
-  return new Date().toISOString();
-}
-
 /**
  * worker thread
  */
@@ -82,16 +53,16 @@ parentPort.on('message', async (msg) => {
     process.exit();
   } else {
     // console.log(msg);
-    const psiType = msg.options.argv.psiType;
-    
+    const { psiType } = msg.options.argv;
+
     try {
       if (psiType === 'local') {
         const importerLib = await import('franklin-bulk-shared');
-  
+
         const [browser, page] = await importerLib.Puppeteer.initBrowser({
           port: msg.port,
         });
-  
+
         const result = await importerLib.Puppeteer.runStepsSequence(
           page,
           msg.url,
@@ -99,12 +70,12 @@ parentPort.on('message', async (msg) => {
             importerLib.Puppeteer.Steps.runLighthouseCheck(),
           ],
         );
-  
+
         // cool down
         await importerLib.Time.sleep(250);
-  
+
         await browser.close();
-  
+
         parentPort.postMessage({
           url: msg.url,
           passed: true,
@@ -113,11 +84,11 @@ parentPort.on('message', async (msg) => {
         });
       } else if (psiType === 'google') {
         const result = await runLighthouse(msg.url, msg.options.argv.googleApiKey);
-    
+
         // write result to file
         fs.writeFileSync(path.join(msg.options.reportsFolder, `${result.execId}.json`), JSON.stringify(result, null, 2));
-  
-        const categories = [ 'performance', 'accessibility', 'best-practices', 'seo' ];
+
+        const categories = ['performance', 'accessibility', 'best-practices', 'seo'];
 
         parentPort.postMessage({
           url: msg.url,
@@ -130,7 +101,6 @@ parentPort.on('message', async (msg) => {
         throw new Error(`Unsupported PSI type ${psiType}`);
       }
     } catch (error) {
-      console.log(error);
       parentPort.postMessage({
         url: msg.url,
         passed: false,

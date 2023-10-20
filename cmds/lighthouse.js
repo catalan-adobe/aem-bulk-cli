@@ -1,34 +1,33 @@
 #!/usr/bin/env node
 
 // imports
-const { cliWorkerHandler } = require('../src/cliWorkerHandler');
-const { defaultCLICmdWithWorkerYargsBuilder } = require('../src/yargs');
 const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
+const { defaultCLICmdWithWorkerYargsBuilder } = require('../src/yargs');
+const { cliWorkerHandler } = require('../src/cliWorkerHandler');
 
 // constants
-const LH_AUDIT_KEYS = [ 'speed-index', 'first-contentful-paint', 'largest-contentful-paint', 'total-blocking-time', 'cumulative-layout-shift' ];
+const LH_AUDIT_KEYS = ['speed-index', 'first-contentful-paint', 'largest-contentful-paint', 'total-blocking-time', 'cumulative-layout-shift'];
 
 /**
  * functions
 */
 
 // Get an excel workbook from a path, using exceljs package
-async function getExcelSheet(path, sheetName) {
-  const REPORT_HEADERS = [ 'url', 'execution id', 'timestamp', 'duration (ms)', 'performance (%)', 'accessibility (%)', 'best practices (%)', 'seo (%)' ].concat(LH_AUDIT_KEYS.map((k) => `${k} (ms)`));
+async function getExcelSheet(pathname, sheetName) {
+  const REPORT_HEADERS = ['url', 'execution id', 'timestamp', 'duration (ms)', 'performance (%)', 'accessibility (%)', 'best practices (%)', 'seo (%)'].concat(LH_AUDIT_KEYS.map((k) => `${k} (ms)`));
   const workbook = new ExcelJS.Workbook();
-  if (fs.existsSync(path)) {
-    await workbook.xlsx.readFile(path);
+  if (fs.existsSync(pathname)) {
+    await workbook.xlsx.readFile(pathname);
     const sheet = workbook.getWorksheet(sheetName) || workbook.addWorksheet(sheetName);
-    return {workbook, sheet };
-  } else {
-    const sheet = workbook.addWorksheet(sheetName);
-    sheet.addRow(REPORT_HEADERS);
-    await workbook.xlsx.writeFile(path);
-    return {workbook, sheet };
+    return { workbook, sheet };
   }
-};
+  const sheet = workbook.addWorksheet(sheetName);
+  sheet.addRow(REPORT_HEADERS);
+  await workbook.xlsx.writeFile(pathname);
+  return { workbook, sheet };
+}
 
 /**
  * CLI Command parameters
@@ -86,20 +85,23 @@ exports.handler = async (argv) => {
     const workbook = await getExcelSheet(path.join(outputFolder, argv.excelReport), 'results');
 
     reporInExcelFn = async (result) => {
-      const report = result.report;
-      const audits = report.report.lighthouseResult.audits;
+      const { report } = result;
+      const { audits } = report.report.lighthouseResult;
       if (report) {
         // write result to excel
-        workbook.sheet.addRow([ 
+        workbook.sheet.addRow([
           report.url,
           report.execId,
           report.timestamp,
           report.duration,
           report.report.lighthouseResult.categories.performance.score * 100,
           report.report.lighthouseResult.categories.accessibility.score * 100,
-          report.report.lighthouseResult.categories["best-practices"].score * 100,
+          report.report.lighthouseResult.categories['best-practices'].score * 100,
           report.report.lighthouseResult.categories.seo.score * 100,
-        ].concat(LH_AUDIT_KEYS.map((k) => (audits[k]?.numericValue || audits[k]?.numericValue === 0) ? Math.round(audits[k]?.numericValue * 1000) / 1000 : 'N/A')));
+        ].concat(LH_AUDIT_KEYS.map((k) => {
+          const audit = audits[k];
+          return ('numericValue' in audit) ? Math.round(audit.numericValue * 1000) / 1000 : 'N/A';
+        })));
         await workbook.workbook.xlsx.writeFile(path.join(outputFolder, argv.excelReport));
       }
     };

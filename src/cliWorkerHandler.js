@@ -52,7 +52,7 @@ function workerExitHandler(workers) {
  */
 
 async function cliWorkerHandler(workerScriptFilename, workerOptions, argv, onMessageFn) {
-  workerOptions = {
+  const options = {
     ...workerOptions,
     argv,
   };
@@ -111,20 +111,20 @@ async function cliWorkerHandler(workerScriptFilename, workerOptions, argv, onMes
             workerData: {
               port: ports[idx],
               idx: idx + 1,
-              workerOptions,
+              options,
             },
           });
           workers.push(worker);
           // Handle worker exit
           worker.on('exit', workerExitHandler.bind(null, workers));
           // Listen for messages from the worker thread
-          worker.on('message', workerMsgHandler.bind(null, worker, workerOptions, ports[idx], idx + 1, onMessageFn));
+          worker.on('message', workerMsgHandler.bind(null, worker, options, ports[idx], idx + 1, onMessageFn));
 
           results.push({ url, status: null });
           workers[idx].postMessage({
             idx: idx + 1,
             port: ports[idx],
-            options: workerOptions,
+            options,
             line: urls.length - urls.length,
             url,
           });
