@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.4.1...v1.5.0) (2023-10-20)
+
+
+### Features
+
+* add option to generate advanced xlsx report for crawling action ([f11d70f](https://github.com/catalan-adobe/franklin-bulk-cli/commit/f11d70f04446d57f0f1aeeb9b3a06771c31e3dd2))
+
 # [1.4.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.3.2...v1.4.0) (2023-10-20)
 
 
