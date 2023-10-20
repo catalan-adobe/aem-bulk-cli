@@ -38,7 +38,7 @@ function yargsBuilder(yargs) {
     .env('FRK_BULK_LH')
     .option('psi-type', {
       alias: 't',
-      describe: 'Type of PSI check to use (local|google)',
+      describe: 'Type of PSI check to use (local|google|eaas)',
       default: 'local',
       type: 'string',
     })

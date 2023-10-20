@@ -8,12 +8,16 @@ const path = require('path');
  */
 
 /* eslint-disable no-async-promise-executor */
-const runLighthouse = (url, apiKey) => new Promise(async (resolve, reject) => {
+const runLighthouse = (url, type, apiKey) => new Promise(async (resolve, reject) => {
   const execId = randomUUID();
 
   try {
     const startTime = Date.now();
-    const psiURL = `https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO&strategy=MOBILE&key=${apiKey}`;
+    let psiURL = `https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&category=ACCESSIBILITY&category=BEST_PRACTICES&category=PERFORMANCE&category=SEO&strategy=MOBILE&key=${apiKey}`;
+
+    if (type === 'eaas') {
+      psiURL = `http://psi.experiencecloud.live/?url=${url}`;
+    }
 
     const res = await fetch(psiURL, {
       method: 'GET',
@@ -82,8 +86,8 @@ parentPort.on('message', async (msg) => {
           result: 'Success',
           postMsg: `: LH (${result.lighthouse.version}) Scores: ${Object.keys(result.lighthouse.scores).map((k) => `${k}: ${result.lighthouse.scores[k].score}`).join(', ')} `,
         });
-      } else if (psiType === 'google') {
-        const result = await runLighthouse(msg.url, msg.options.argv.googleApiKey);
+      } else if (psiType === 'google' || psiType === 'eaas') {
+        const result = await runLighthouse(msg.url, psiType, msg.options.argv.googleApiKey);
 
         // write result to file
         fs.writeFileSync(path.join(msg.options.reportsFolder, `${result.execId}.json`), JSON.stringify(result, null, 2));
