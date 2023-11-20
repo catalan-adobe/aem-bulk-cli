@@ -194,15 +194,15 @@ exports.handler = async (argv) => {
     if (argv.excelReport) {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('report');
-    
+
       const headers = ['URL', 'path', 'path level 1', 'path level 2', 'path level 3', 'filename'];
-    
+
       // create Excel auto Filters for the first row / header
       worksheet.autoFilter = {
         from: 'A1',
         to: `${String.fromCharCode(65 + headers.length - 1)}1`, // 65 = 'A'...
       };
-    
+
       worksheet.addRows([
         headers,
       ].concat(urls.map((row) => {
@@ -212,9 +212,7 @@ exports.handler = async (argv) => {
         while (levels.length < 4) {
           levels.push('');
         }
-        const r = [row.url, u.pathname].concat(levels.slice(1, 4).map((l, idx) => {
-          return (l === filename) ? ('') : (l || ' ')
-        }));
+        const r = [row.url, u.pathname].concat(levels.slice(1, 4).map((l) => ((l === filename) ? ('') : (l || ' '))));
         r.push(filename);
         return r;
       })));
