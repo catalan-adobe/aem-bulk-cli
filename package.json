@@ -17,7 +17,7 @@
     "delay": "6.0.0",
     "exceljs": "^4.3.0",
     "find-free-port": "2.0.0",
-    "franklin-bulk-shared": "1.13.3",
+    "franklin-bulk-shared": "1.13.5",
     "got": "13.0.0",
     "jsdom": "22.1.0",
     "p-queue": "7.4.1",
