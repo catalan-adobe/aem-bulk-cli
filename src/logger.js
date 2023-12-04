@@ -28,6 +28,13 @@ function getLogger(name, level = 'error') {
   return wl;
 }
 
+function formatLevel(level) {
+  if (level.length < 5) {
+      return level.padEnd(5);
+  }
+  return level;
+}
+
 function getWorkerLogger(workerId, level = 'debug') {
   const wl = LOGGER_INSTANCE.child({ workerId });
   wl.add(
@@ -37,7 +44,7 @@ function getWorkerLogger(workerId, level = 'debug') {
         format.timestamp({
           format: 'YYYY-MM-DD HH:mm:ss',
         }),
-        format.printf((info) => `[${info.workerId}][${info.level}][${info.timestamp}] ${info.message}`),
+        format.printf((info) => `[${info.workerId}][${(formatLevel(info.level))}][${info.timestamp}] ${info.message}`),
       ),
       level,
     }),
