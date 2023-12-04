@@ -1,3 +1,11 @@
+## [1.5.2](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.1...v1.5.2) (2023-12-04)
+
+
+### Bug Fixes
+
+* apply padding on log level for better displaying ([17ca924](https://github.com/catalan-adobe/franklin-bulk-cli/commit/17ca924c5a9ea3f92dd594965a7f9dfcb84e24df))
+* use default global parameters for cache command ([4e8efbc](https://github.com/catalan-adobe/franklin-bulk-cli/commit/4e8efbcddb6a078324666251b5e8cda75b539325))
+
 ## [1.5.1](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.0...v1.5.1) (2023-11-25)
 
 
