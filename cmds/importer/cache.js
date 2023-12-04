@@ -4,43 +4,15 @@
 const path = require('path');
 const { terminal } = require('terminal-kit');
 const { cliWorkerHandler } = require('../../src/cliWorkerHandler');
+const { defaultCLICmdWithWorkerYargsBuilder } = require('../../src/yargs');
 
 function yargsBuilder(yargs) {
-  return yargs
-    .option('verbose', {
-      alias: 'v',
-      describe: 'Increase logging verbosity',
-      type: 'boolean',
-    })
-    .option('interactive', {
-      alias: 'i',
-      describe: 'Start the application in interactive mode, you will be prompted to copy/paste the list of URLs directly in the terminal. Enter an empty line to finish the process',
-      type: 'boolean',
-    })
-    .option('file', {
-      alias: 'f',
-      describe: 'Path to a text file containing the list of URLs to deliver (urls pattern: "https://<branch>--<repo>--<owner>.hlx.page/<path>")',
-      type: 'string',
-    })
-    .conflicts('f', 'i')
+  return defaultCLICmdWithWorkerYargsBuilder(yargs)
     .option('output-folder', {
       alias: 'o',
       describe: 'The target folder for the generated data',
       type: 'string',
       default: 'cache',
-    })
-    .option('workers', {
-      alias: 'w',
-      describe: 'Number of workers to use (max. 8)',
-      type: 'number',
-      default: 1,
-      coerce: (value) => {
-        if (value > 50) {
-          terminal.yellow('Warning: Maximum number of workers is 50. Using 50 workers instead.\n');
-          return 50;
-        }
-        return value;
-      },
     })
     .option('no-headless', {
       describe: 'Starts the browser in non-headless mode. Useful for debugging. Also, it forces workers to 1.',
