@@ -2,7 +2,6 @@
 
 // imports
 const path = require('path');
-const { terminal } = require('terminal-kit');
 const { cliWorkerHandler } = require('../../src/cliWorkerHandler');
 const { defaultCLICmdWithWorkerYargsBuilder } = require('../../src/yargs');
 

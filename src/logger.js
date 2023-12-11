@@ -30,7 +30,7 @@ function getLogger(name, level = 'error') {
 
 function formatLevel(level) {
   if (level.length < 5) {
-      return level.padEnd(5);
+    return level.padEnd(5);
   }
   return level;
 }
