@@ -17,7 +17,7 @@
     "delay": "6.0.0",
     "exceljs": "^4.3.0",
     "find-free-port": "2.0.0",
-    "franklin-bulk-shared": "1.14.0",
+    "franklin-bulk-shared": "1.15.1",
     "got": "14.0.0",
     "jsdom": "23.0.1",
     "p-queue": "7.4.1",
@@ -28,7 +28,7 @@
   "devDependencies": {
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/git": "10.0.1",
-    "@semantic-release/github": "9.2.5",
+    "@semantic-release/github": "9.2.6",
     "@semantic-release/npm": "11.0.2",
     "eslint": "8.56.0",
     "eslint-config-airbnb-base": "15.0.0",
