@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.3...v1.5.4) (2023-12-30)
+
+
+### Bug Fixes
+
+* **deps:** update dependency axios to v1.6.3 ([fc64a76](https://github.com/catalan-adobe/franklin-bulk-cli/commit/fc64a76faef014411ce5c257c1fc66f0edf87851))
+
 ## [1.5.3](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.2...v1.5.3) (2023-12-04)
 
 
