@@ -13,13 +13,13 @@
     "semantic-release": "semantic-release"
   },
   "dependencies": {
-    "axios": "1.6.3",
+    "axios": "1.6.5",
     "delay": "6.0.0",
     "exceljs": "^4.3.0",
     "find-free-port": "2.0.0",
     "franklin-bulk-shared": "1.15.1",
     "got": "14.0.0",
-    "jsdom": "23.0.1",
+    "jsdom": "23.1.0",
     "p-queue": "7.4.1",
     "terminal-kit": "3.0.1",
     "winston": "3.11.0",
