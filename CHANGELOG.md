@@ -1,3 +1,10 @@
+## [1.5.6](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.5...v1.5.6) (2024-01-13)
+
+
+### Bug Fixes
+
+* **deps:** update dependency jsdom to v23.2.0 ([5ce229a](https://github.com/catalan-adobe/franklin-bulk-cli/commit/5ce229a6d17c0b6502d5312a44741dd5925bc117))
+
 ## [1.5.5](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.4...v1.5.5) (2024-01-06)
 
 

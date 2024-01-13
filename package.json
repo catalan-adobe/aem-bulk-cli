@@ -1,6 +1,6 @@
 {
   "name": "franklin-bulk",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "description": "A CLI tool for Franklin bulk operations",
   "bin": "index.js",
   "repository": {
