@@ -19,7 +19,7 @@
     "find-free-port": "2.0.0",
     "franklin-bulk-shared": "1.15.1",
     "got": "14.0.0",
-    "jsdom": "23.1.0",
+    "jsdom": "23.2.0",
     "p-queue": "7.4.1",
     "terminal-kit": "3.0.1",
     "winston": "3.11.0",
