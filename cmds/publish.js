@@ -65,7 +65,7 @@ function publishCmd(stage) {
         // init excel report
         excelReport = new ExcelWriter({
           filename: argv.excelReport,
-          headers: ['URL', `${stage} status`],
+          headers: ['url', 'api url', `${stage} status`],
           formatRowFn: (record) => [record.url, record.apiURL, record.status],
           writeEvery: Math.min(Math.round(urls.length / 10), 1000),
         });
@@ -83,10 +83,7 @@ function publishCmd(stage) {
 
         // triggered each time a job is completed
         queue.on('completed', async (result) => {
-          await excelReport.addRow({
-            url: result.url,
-            status: result.status,
-          });
+          await excelReport.addRow(result);
         });
 
         const donePromise = new Promise((resolve) => {
@@ -125,8 +122,8 @@ function publishCmd(stage) {
         // add items to queue
         urls.forEach((url) => {
           queue.add(async () => {
+            const apiURL = buildAPIURL(stage, url);
             try {
-              const apiURL = buildAPIURL(stage, url);
               logger.debug(`fetching ${apiURL}`);
               const resp = await fetch(apiURL, reqOptions);
 
@@ -145,6 +142,7 @@ function publishCmd(stage) {
               } else {
                 logger.info(`${publishStatus}: ${url}`);
               }
+
               return {
                 url,
                 apiURL,
@@ -154,6 +152,7 @@ function publishCmd(stage) {
               logger.error(`fetch ${url}: ${error}`);
               return {
                 url,
+                apiURL,
                 status: error.message,
               };
             }
