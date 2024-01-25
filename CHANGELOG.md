@@ -1,3 +1,11 @@
+## [1.5.7](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.6...v1.5.7) (2024-01-25)
+
+
+### Bug Fixes
+
+* merge conflicts ([d307b6d](https://github.com/catalan-adobe/franklin-bulk-cli/commit/d307b6d645fff4dc18249dd4b404e4c84f640e09))
+* package-lock.json ([08df427](https://github.com/catalan-adobe/franklin-bulk-cli/commit/08df427e07101e3717a95215ec546c994785a272))
+
 ## [1.5.6](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.5...v1.5.6) (2024-01-13)
 
 
