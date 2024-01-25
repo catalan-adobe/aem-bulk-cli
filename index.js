@@ -19,7 +19,7 @@ const MIN_MSG = 'You need at least one command.';
 
 (async () => {
   const logger = getLogger('aem-bulk', {
-    level: 'debug',
+    level: 'info',
     parent: null,
   });
 
