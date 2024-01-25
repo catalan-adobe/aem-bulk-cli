@@ -1,7 +1,18 @@
-const readline = require('readline');
-const { terminal } = require('terminal-kit');
+/*
+ * Copyright 2023 Adobe. All rights reserved.
+ * This file is licensed to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License. You may obtain a copy
+ * of the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under
+ * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+ * OF ANY KIND, either express or implied. See the License for the specific language
+ * governing permissions and limitations under the License.
+ */
+import readline from 'readline';
+import { getLogger } from './logger.js';
 
-async function readLines(breaker) {
+export async function readLines(breaker = '') {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -9,7 +20,8 @@ async function readLines(breaker) {
 
   const lines = [];
 
-  terminal.brightBlue('Enter a list of URLs (urls pattern: "https://<branch>--<repo>--<owner>.hlx.page/<path>"). Enter an empty line to proceed:\n');
+  /* eslint-disable-next-line no-console */
+  console.log('Enter a list of URLs (urls pattern: "https://<branch>--<repo>--<owner>.hlx.page/<path>"). Enter an empty line to proceed:\n');
 
   /* eslint-disable-next-line no-restricted-syntax */
   for await (const input of rl) {
@@ -26,4 +38,138 @@ async function readLines(breaker) {
   return lines;
 }
 
-exports.readLines = readLines;
+export class CommonCommandHandler {
+  #argv;
+
+  #logger;
+
+  #urls;
+
+  constructor(argv, logger) {
+    this.#argv = argv;
+    this.#logger = logger;
+    this.#urls = [];
+  }
+
+  get argv() {
+    return this.#argv;
+  }
+
+  get logger() {
+    return this.#logger;
+  }
+
+  set logger(value) {
+    this.#logger = value;
+  }
+
+  get urls() {
+    return this.#urls;
+  }
+
+  set urls(value) {
+    this.#urls = value;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  withHandler(cmdFn) {
+    return async function h(argv) {
+      try {
+        const cmdCommand = argv._ ? argv._.join('_>_') : 'unknown';
+        this.logger = getLogger(cmdCommand, {
+          level: argv.logLevel,
+          file: argv.logFile,
+        });
+
+        JSON.stringify(argv, null, 2).split('\n').forEach((line) => {
+          this.logger.debug(line);
+        });
+
+        //
+        // execute cmdFn
+        //
+
+        await cmdFn({
+          argv,
+          logger: this.logger,
+          AEMBulk: await import('franklin-bulk-shared'),
+        });
+      } catch (e) {
+        this.logger.error(e.stack);
+        throw e;
+      } finally {
+        this.logger.debug('cli handler done');
+      }
+      // return Promise.resolve();
+    };
+  }
+}
+
+export function withBrowserCLIParameters(yargs) {
+  return yargs
+    .option('headless', {
+      alias: 'h',
+      describe: 'Run in headless mode',
+      type: 'boolean',
+      default: true,
+    })
+    .option('disable-js', {
+      alias: 'disableJS',
+      describe: 'Disable JavaScript',
+      type: 'boolean',
+      default: false,
+    })
+    .group(['headless', 'disable-js'], 'Browser Options:');
+}
+
+export function withURLsInputCLIParameters(yargsInst) {
+  return yargsInst
+    .option('interactive', {
+      alias: 'i',
+      describe: 'Start the application in interactive mode, you will be prompted to copy/paste the list of URLs directly in the terminal. Enter an empty line to finish the process',
+      type: 'boolean',
+    })
+    .option('file', {
+      alias: 'f',
+      describe: 'Path to a text file containing the list of URLs to deliver (urls pattern: "https://<branch>--<repo>--<owner>.hlx.page/<path>")',
+      type: 'string',
+    })
+    .option('list-breaker', {
+      alias: 'b',
+      describe: 'The character to use to signal end of the list in interactive mode. Default is empty line',
+      type: 'string',
+      default: '',
+    })
+    .conflicts('f', 'i')
+    .group(['i', 'f', 'b'], 'Common Options:');
+}
+
+export function withCommonCLIParameters(yargsInst, logger) {
+  return yargsInst
+    .option('log-level', {
+      alias: 'logLevel',
+      describe: 'Log level',
+      type: 'string',
+      choices: ['debug', 'info', 'warn', 'error'],
+      default: 'info',
+    })
+    .option('log-file', {
+      alias: 'logFile',
+      describe: 'Log file',
+      type: 'string',
+      normalize: true,
+    })
+    .option('workers', {
+      describe: 'Number of workers to use (max. 5)',
+      type: 'number',
+      default: 1,
+      coerce: (value) => {
+        if (value > 5) {
+          logger.warn('Warning: limiting maximum number of workers to 5!');
+          return 5;
+        }
+        return value;
+      },
+    })
+    .group(['workers', 'log-file', 'log-level'], 'Common Options:');
+}

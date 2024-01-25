@@ -11,31 +11,40 @@
  */
 import PQueue from 'p-queue';
 import fs from 'fs';
-import { CommonCommandHandler, readLines, withURLsInputCLIParameters } from '../../src/cli.js';
-import { ExcelWriter } from '../../src/excel.js';
+import os from 'os';
+import path from 'path';
+
+import { CommonCommandHandler, readLines, withURLsInputCLIParameters } from '../src/cli.js';
+import { ExcelWriter } from '../src/excel.js';
+import { buildAPIURL } from '../src/aem.js';
 
 /**
  * main
  */
 
-export default function CheckURLsCmd() {
+function publishCmd(stage) {
   return {
-    command: 'check-urls',
-    describe: 'Check HTTP Status for a list of URLs',
+    command: stage,
+    describe: `Publish pages to ${stage} stage on AEM Edge Delivery (URLs should be of type "https://<branch>--<repo>--<owner>.hlx.page/<path>")`,
     builder: (yargs) => {
       withURLsInputCLIParameters(yargs)
         .option('excel-report', {
           alias: 'excelReport',
-          describe: 'Path to Excel report file for the found URLs',
-          default: 'check-urls-report.xlsx',
+          describe: 'Path to Excel report file for the URLs to publish',
+          default: `${stage}-report.xlsx`,
           type: 'string',
         })
-        .group(['excelReport'], 'Check URLs Options:');
+        .option('delete', {
+          describe: 'Revert publish operation',
+          default: false,
+          type: 'boolean',
+        })
+        .group(['excelReport'], 'Publish Options:');
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger,
     }) => {
-      logger.debug(`check-urls main handler - start - ${logger.level}`);
+      logger.debug(`${stage} main handler - start - ${logger.level}`);
 
       let excelReport;
 
@@ -56,17 +65,8 @@ export default function CheckURLsCmd() {
         // init excel report
         excelReport = new ExcelWriter({
           filename: argv.excelReport,
-          headers: ['URL', 'path', 'path level 1', 'path level 2', 'path level 3', 'filename', 'http status'],
-          formatRowFn: (record) => {
-            const u = new URL(record.url);
-            const levels = u.pathname.split('/');
-            const filename = levels[levels.length - 1];
-            while (levels.length < 4) {
-              levels.push('');
-            }
-            const r = [record.url, u.pathname].concat(levels.slice(1, 4).map((l) => ((l === filename) ? ('') : (l || ' '))));
-            return r.concat([filename, record.status]);
-          },
+          headers: ['URL', `${stage} status`],
+          formatRowFn: (record) => [record.url, record.apiURL, record.status],
           writeEvery: Math.min(Math.round(urls.length / 10), 1000),
         });
 
@@ -96,27 +96,62 @@ export default function CheckURLsCmd() {
           });
         });
 
+        const reqOptions = {
+          method: argv.delete ? 'DELETE' : 'POST',
+          timeout: {
+            request: 60000,
+          },
+        };
+
+        // authentication
+        let authToken = null;
+        const authFile = path.join(os.homedir(), '.aem-ed-credentials.json');
+        if (process.env.AEM_API_TOKEN) {
+          authToken = process.env.FRANKLIN_API_TOKEN;
+        } else if (fs.existsSync(authFile)) {
+          const credentials = JSON.parse(fs.readFileSync(authFile));
+          const tempAPIURL = buildAPIURL(stage, urls[0]);
+          if (tempAPIURL.includes(credentials.path)) {
+            authToken = credentials.auth_token;
+          }
+        }
+
+        if (authToken) {
+          reqOptions.headers = {
+            'X-Auth-Token': authToken,
+          };
+        }
+
         // add items to queue
         urls.forEach((url) => {
           queue.add(async () => {
             try {
-              logger.debug(`fetching ${url}`);
-              const resp = await fetch(url, {
-                timeout: {
-                  request: 30000,
-                },
-              });
+              const apiURL = buildAPIURL(stage, url);
+              logger.debug(`fetching ${apiURL}`);
+              const resp = await fetch(apiURL, reqOptions);
 
               if (!resp.ok) {
-                throw new Error(`fetch ${url}: ${resp.statusCode}`);
+                throw new Error(`${resp.status}: ${resp.statusText}`);
               }
 
+              let publishStatus = resp.status;
+              if (!argv.delete) {
+                const apiResp = await resp.json();
+                publishStatus = apiResp[stage].status;
+              }
+              const publishStatusOK = argv.delete ? publishStatus === 204 : publishStatus === 200;
+              if (publishStatusOK) {
+                logger.warn(`${publishStatus}: ${url}`);
+              } else {
+                logger.info(`${publishStatus}: ${url}`);
+              }
               return {
                 url,
-                status: resp.status,
+                apiURL,
+                status: publishStatus,
               };
             } catch (error) {
-              logger.error(`fetch ${url}: ${error.message}`);
+              logger.error(`fetch ${url}: ${error}`);
               return {
                 url,
                 status: error.message,
@@ -130,9 +165,9 @@ export default function CheckURLsCmd() {
 
         await donePromise;
       } catch (e) {
-        logger.error(`check-urls main handler: ${e.stack}`);
+        logger.error(`${stage} main handler: ${e.stack}`);
       } finally {
-        logger.debug('check-urls main handler - finally');
+        logger.debug(`${stage} main handler - finally`);
         if (excelReport) {
           logger.info('writing excel report');
           await excelReport.write();
@@ -140,4 +175,12 @@ export default function CheckURLsCmd() {
       }
     }),
   };
+}
+
+export function previewCmd() {
+  return publishCmd('preview');
+}
+
+export function liveCmd() {
+  return publishCmd('live');
 }

@@ -1,78 +1,119 @@
-#!/usr/bin/env node
-
-// imports
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-
 /*
- * CLI Command parameters
+ * Copyright 2023 Adobe. All rights reserved.
+ * This file is licensed to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License. You may obtain a copy
+ * of the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under
+ * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+ * OF ANY KIND, either express or implied. See the License for the specific language
+ * governing permissions and limitations under the License.
+ */
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { CommonCommandHandler } from '../src/cli.js';
+
+const GLOBAL_TIMEOUT = 120000;
+/**
+ * main
  */
 
-function yargsBuilder(yargs) {
-  return yargs
-    .option('path', {
-      alias: 'p',
-      describe: 'Path of the Frankiln website (/{repo}/{owner}/{ref})',
-      type: 'string',
-    })
-    .demandOption(['p'])
+export default function loginCmd() {
+  return {
+    command: 'login',
+    describe: 'Login to an AEM Edge Delivery project and save credentials locally (~/aem-ed-credentials.json)',
+    builder: (yargs) => {
+      yargs
+        .option('project-path', {
+          alias: 'p',
+          describe: 'Path of the Frankiln website (/{owner}/{repo}/{ref})',
+          type: 'string',
+        })
+        .demandOption(['p'])
+        .option('use-local-chrome', {
+          alias: 'useLocalChrome',
+          describe: 'Use local Chrome for browser interaction',
+          type: 'boolean',
+          default: false,
+        })
+        .group(['project-path', 'use-local-chrome'], 'Login Options:')
+        .help();
+    },
+    handler: (new CommonCommandHandler()).withHandler(async ({
+      argv, logger, AEMBulk,
+    }) => {
+      const frkPath = argv.projectPath;
 
-    .help('h');
-}
+      let browser = null;
 
-/*
- * Main
- */
+      try {
+        [browser] = await AEMBulk.Puppeteer.initBrowser({
+          headless: false,
+          adBlocker: false,
+          gdprBlocker: false,
+        });
 
-exports.desc = 'Login to a Franklin authenticated website';
-exports.builder = yargsBuilder;
-exports.handler = async (argv) => {
-  const frkPath = argv.path;
+        // Create a page
+        const page = await browser.newPage();
 
-  let browser = null;
+        let authTokenFound = false;
 
-  const importerLib = await import('franklin-bulk-shared');
+        // // global timeout
+        // const globalTimeout = setTimeout(() => {
+        //   reject(new Error('global timeout reached (120s.)'));
+        // }, 120000);
 
-  try {
-    [browser] = await importerLib.Puppeteer.initBrowser({
-      headless: false,
-      adBlocker: false,
-      gdprBlocker: false,
-      userDataDir: path.join(os.tmpdir(), '.franklin-bulk-shared-chrome-data'),
-    });
+        page.on('load', async () => {
+          const cookies = await page.cookies();
+          const cookie = cookies.find((c) => c.name === 'auth_token');
 
-    // Create a page
-    const page = await browser.newPage();
+          if (cookie) {
+            await browser.close();
 
-    // global timeout
-    const globalTimeout = setTimeout(() => {
-      throw new Error('Timeout');
-    }, 120000);
+            const credentialsFile = path.join(os.homedir(), '.aem-ed-credentials.json');
 
-    page.on('load', async () => {
-      const cookies = await page.cookies();
-      const cookie = cookies.find((c) => c.name === 'auth_token');
+            logger.info(`Saving credentials to ${credentialsFile}`);
+            await fs.writeFileSync(credentialsFile, JSON.stringify({
+              path: frkPath,
+              auth_token: decodeURIComponent(cookie.value),
+            }, null, 2));
+            // clearTimeout(globalTimeout);
+            authTokenFound = true;
+          }
+        });
 
-      if (cookie) {
-        await browser.close();
+        await page.goto(`https://admin.hlx.page/login${frkPath}`/* , { waitUntil: 'networkidle2' } */);
 
-        const credentialsFile = path.join(os.homedir(), '.frk-cli-credentials.json');
+        await new Promise((resolve, reject) => {
+          let authTokenPollCheckInterval;
+          const interval = 500;
+          let timeoutCounter = GLOBAL_TIMEOUT;
 
-        await fs.writeFileSync(credentialsFile, JSON.stringify({
-          path: frkPath,
-          auth_token: decodeURIComponent(cookie.value),
-        }, null, 2));
-        clearTimeout(globalTimeout);
+          const intFn = () => {
+            timeoutCounter -= interval;
+
+            // global timeout
+            if (timeoutCounter <= 0) {
+              clearInterval(authTokenPollCheckInterval);
+              reject(new Error('global timeout reached (120s.)'));
+            }
+            // auth token found, move on
+            if (authTokenFound === true) {
+              clearInterval(authTokenPollCheckInterval);
+              resolve();
+            }
+          };
+
+          authTokenPollCheckInterval = setInterval(intFn, interval);
+        });
+      } catch (e) {
+        logger.error(e);
+      } finally {
+        if (browser) {
+          await browser.close();
+        }
       }
-    });
-
-    await page.goto(`https://admin.hlx.page/login${frkPath}`);
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(e.message);
-    if (browser) {
-      await browser.close();
-    }
-  }
-};
+    }),
+  };
+}
