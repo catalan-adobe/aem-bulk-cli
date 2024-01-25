@@ -23,7 +23,7 @@ const MIN_MSG = 'You need at least one command.';
     parent: null,
   });
 
-  logger.info('aem-bulk-cli init ...');
+  logger.debug('aem-bulk-cli init ...');
 
   function cliFailFn(message, err, argv) {
     const msg = err && err.message ? err.message : message;
