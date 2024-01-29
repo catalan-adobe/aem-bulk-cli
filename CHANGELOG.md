@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.8...v1.6.0) (2024-01-29)
+
+
+### Features
+
+* rename cli to aem-bulk ([85ab8f4](https://github.com/catalan-adobe/franklin-bulk-cli/commit/85ab8f44364fb6762d37ffa90bd4be7fec6cae91))
+
 ## [1.5.8](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.7...v1.5.8) (2024-01-27)
 
 
