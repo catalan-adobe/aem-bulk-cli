@@ -1,6 +1,6 @@
 {
   "name": "aem-bulk-cli",
-  "version": "1.0.0",
+  "version": "1.5.8",
   "description": "CLI for AEM Edge Delivery bulk operations ",
   "type": "module",
   "main": "index.js",
