@@ -1,28 +1,38 @@
-Franklin Bulk Operations CLI
+AEM Bulk Operations CLI
 ===
 
 
 ### Install
 
 ```
-npm install -g franklin-bulk
+npm install -g aem-bulk
 ```
 
 
 ### Usage
 
 ```
-franklin-bulk <command>
+Usage: aem-bulk <command> [options]
 
 Commands:
-  franklin-bulk lighthouse  Executes Lighthouse analysis for a list of URLs
-  franklin-bulk live        Publish pages to live stage on Franklin
-  franklin-bulk preview     Publish pages to preview stage on Franklin
-  franklin-bulk screenshot  Take full page screenshots for given list of URLs
+  aem-bulk preview             Publish pages to preview stage on AEM Edge Delivery (URLs should be of type "https://<bra
+                               nch>--<repo>--<owner>.hlx.page/<path>")
+  aem-bulk live                Publish pages to live stage on AEM Edge Delivery (URLs should be of type "https://<branch
+                               >--<repo>--<owner>.hlx.page/<path>")
+  aem-bulk login               Login to an AEM Edge Delivery project and save credentials locally (~/aem-ed-credentials.
+                               json)
+  aem-bulk screenshot          Take full page screenshot for a list of URLs
+  aem-bulk lighthouse          Execute Lighthouse analysis for a list of URLs
+  aem-bulk importer <command>  importer group
+
+Common Options:
+  --workers                Number of workers to use (max. 5)                                       [number] [default: 1]
+  --log-file, --logFile    Log file                                                                             [string]
+  --log-level, --logLevel  Log level              [string] [choices: "debug", "info", "warn", "error"] [default: "info"]
 
 Options:
-      --version  Show version number                                                                                               [boolean]
-  -h             Show help                                                                                                         [boolean]
+  --version  Show version number                                                                               [boolean]
+  --help     Show help                                                                                         [boolean]
 ```
 
 
@@ -43,6 +53,6 @@ node index.js
 
 ### TODOs
 
+* [x] Add reporting (csv, xlsx?) to, for example help re-run operations on failed URLs
 * [ ] Add unit tests
-* [ ] Add reporting (csv, xlsx?) to, for example help re-run operations on failed URLs
 * [ ] Accept non Franklin URLs (user would then pass org, repo, branch as parameters)
