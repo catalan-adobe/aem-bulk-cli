@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.6.0...v1.6.1) (2024-01-29)
+
+
+### Bug Fixes
+
+* configure package binary to get it self executable ([2a8643e](https://github.com/catalan-adobe/aem-bulk-cli/commit/2a8643ef1cbe0c71ea8ca2a8db22b103e975df27))
+
 # [1.6.0](https://github.com/catalan-adobe/franklin-bulk-cli/compare/v1.5.8...v1.6.0) (2024-01-29)
 
 
