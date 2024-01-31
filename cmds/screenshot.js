@@ -59,6 +59,7 @@ async function getScreenshot(url, browserOptions, logger, AEMBulk) {
 
     [browser, page] = await AEMBulk.Puppeteer.initBrowser({
       port,
+      disableJS: browserOptions.disableJS,
       useLocalChrome: browserOptions.useLocalChrome,
       width: browserOptions.pageWidth,
       adBlocker: browserOptions.adBlocker,
@@ -79,8 +80,10 @@ async function getScreenshot(url, browserOptions, logger, AEMBulk) {
               document.querySelectorAll(selector).forEach((el) => el.remove());
             }, browserOptions.removeSelectors?.join(', '));
           }
+          if (!browserOptions.disableJS) {
+            await AEMBulk.Puppeteer.smartScroll(browserPage);
+          }
         }),
-        AEMBulk.Puppeteer.Steps.smartScroll(),
         AEMBulk.Puppeteer.Steps.fullPageScreenshot({
           outputFolder: browserOptions.screenshotsFolder,
         }),
@@ -154,6 +157,12 @@ export default function screenshotCmd() {
           type: 'boolean',
           default: false,
         })
+        .option('disable-js', {
+          alias: 'disableJS',
+          describe: 'Disable JavaScript',
+          type: 'boolean',
+          default: false,
+        })
         .option('page-width', {
           alias: 'pageWidth',
           describe: 'Width of the page to capture (in px.)',
@@ -188,7 +197,7 @@ export default function screenshotCmd() {
           type: 'boolean',
         })
         .group([
-          'page-width', 'remove-selector', 'post-load-wait',
+          'page-width', 'disable-js', 'remove-selector', 'post-load-wait',
           'no-headless', 'no-ad-blocker', 'no-gdpr-blocker',
           'use-local-chrome',
         ], 'Browser Options:')
@@ -213,6 +222,7 @@ export default function screenshotCmd() {
         headless: argv.headless ?? true,
         adBlocker: argv.adblocker ?? true,
         gdprBlocker: argv.gdprBlocker ?? true,
+        disableJS: argv.disableJS ?? false,
       };
 
       // parse URLs
