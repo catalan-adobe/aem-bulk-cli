@@ -80,14 +80,23 @@ export class CommonCommandHandler {
           level: argv.logLevel,
           file: argv.logFile,
         });
+        
+        /**
+         * validate cli parameters
+        */
+       
+       if (argv.workers  > 5) {
+         this.logger.warn('Warning: limiting maximum number of workers to 5!');
+         argv.workers = 5;
+        }
 
         JSON.stringify(argv, null, 2).split('\n').forEach((line) => {
           this.logger.debug(line);
         });
 
-        //
-        // execute cmdFn
-        //
+        /**
+         * execute cmdFn
+         */
 
         await cmdFn({
           argv,
@@ -159,17 +168,17 @@ export function withCommonCLIParameters(yargsInst, logger) {
       type: 'string',
       normalize: true,
     })
-    .option('workers', {
-      describe: 'Number of workers to use (max. 5)',
-      type: 'number',
-      default: 1,
-      coerce: (value) => {
-        if (value > 5) {
-          logger.warn('Warning: limiting maximum number of workers to 5!');
-          return 5;
-        }
-        return value;
-      },
-    })
-    .group(['workers', 'log-file', 'log-level'], 'Common Options:');
+
+    if (workers) {
+      yargsInst
+        .option('workers', {
+          describe: 'Number of workers to use (max. 5)',
+          type: 'number',
+          default: 1,
+        });
+
+    }
+    //.group(['workers', 'log-file', 'log-level'], 'Common Options:');
+
+    return yargsInst;
 }
