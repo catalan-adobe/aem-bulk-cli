@@ -84,10 +84,10 @@ export class CommonCommandHandler {
         /**
          * validate cli parameters
         */
-       
-       if (argv.workers  > 5) {
-         this.logger.warn('Warning: limiting maximum number of workers to 5!');
-         argv.workers = 5;
+
+        if (argv.workers  > 5) {
+          this.logger.warn('Warning: limiting maximum number of workers to 5!');
+          argv.workers = 5;
         }
 
         JSON.stringify(argv, null, 2).split('\n').forEach((line) => {
