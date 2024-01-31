@@ -134,7 +134,6 @@ export default function lighthouseCmd() {
           default: 'lh-reports',
           type: 'string',
         })
-        .group(['reportsFolder', 'e', 't'], 'Lighthouse Options:')
         .epilog(`(Google PSI requires a valid API key in the ${GOOGLE_API_ENV_KEY} environment variable)`);
     },
     handler: (new CommonCommandHandler()).withHandler(async ({

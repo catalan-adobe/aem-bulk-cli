@@ -29,8 +29,7 @@ export default function CheckURLsCmd() {
           describe: 'Path to Excel report file for the found URLs',
           default: 'check-urls-report.xlsx',
           type: 'string',
-        })
-        .group(['excelReport'], 'Check URLs Options:');
+        });
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger,

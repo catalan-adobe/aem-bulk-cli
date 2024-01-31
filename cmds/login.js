@@ -26,19 +26,18 @@ export default function loginCmd() {
     builder: (yargs) => {
       yargs
         .option('project-path', {
-          alias: 'p',
-          describe: 'Path of the Frankiln website (/{owner}/{repo}/{ref})',
+          alias: 'projectPath',
+          describe: 'Coordinates of the AEM Website (/{owner}/{repo}/{ref})',
           type: 'string',
         })
-        .demandOption(['p'])
+        .demandOption(['projectPath'])
         .option('use-local-chrome', {
           alias: 'useLocalChrome',
           describe: 'Use local Chrome for browser interaction',
           type: 'boolean',
           default: false,
         })
-        .group(['project-path', 'use-local-chrome'], 'Login Options:')
-        .help();
+        .group(['project-path', 'use-local-chrome'], 'Login Options:');
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger, AEMBulk,
@@ -52,17 +51,13 @@ export default function loginCmd() {
           headless: false,
           adBlocker: false,
           gdprBlocker: false,
+          useLocalChrome: argv.useLocalChrome,
         });
 
         // Create a page
         const page = await browser.newPage();
 
         let authTokenFound = false;
-
-        // // global timeout
-        // const globalTimeout = setTimeout(() => {
-        //   reject(new Error('global timeout reached (120s.)'));
-        // }, 120000);
 
         page.on('load', async () => {
           const cookies = await page.cookies();
@@ -78,12 +73,15 @@ export default function loginCmd() {
               path: frkPath,
               auth_token: decodeURIComponent(cookie.value),
             }, null, 2));
-            // clearTimeout(globalTimeout);
             authTokenFound = true;
           }
         });
 
-        await page.goto(`https://admin.hlx.page/login${frkPath}`/* , { waitUntil: 'networkidle2' } */);
+        const apiURL = `https://admin.hlx.page/login${frkPath}`;
+
+        logger.debug(`api url: ${apiURL}`);
+
+        await page.goto(apiURL);
 
         await new Promise((resolve, reject) => {
           let authTokenPollCheckInterval;

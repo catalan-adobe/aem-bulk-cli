@@ -22,8 +22,7 @@ export default function CommandHandler() {
           type: 'string',
           default: 'chrome-data',
         })
-        .demandOption(['userDataDir'])
-        .group(['userDataDir'], 'Browser Options:');
+        .demandOption(['userDataDir']);
     },
     urlsBuilder(urls) {
       return urls.map((url) => ({

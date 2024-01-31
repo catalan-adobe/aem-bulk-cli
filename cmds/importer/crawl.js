@@ -132,9 +132,7 @@ export default function crawlCmd() {
           describe: 'HTTP Timeout in seconds',
           type: 'number',
           default: 10,
-        })
-        .group(['o', 's', 'e', 't', 'excelReport', 'textFile'], 'Crawl Options:')
-        .help();
+        });
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger, AEMBulk,

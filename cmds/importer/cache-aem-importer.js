@@ -22,8 +22,7 @@ export default function CommandHandler() {
           alias: 'aemImporterProxy',
           type: 'string',
         })
-        .demandOption(['aemImporterProxy'])
-        .group(['aemImporterProxy'], 'Cache Options:');
+        .demandOption(['aemImporterProxy']);
     },
     urlsBuilder(urls, {
       argv,

@@ -19,10 +19,10 @@ export default function importer() {
     async builder(yargs) {
       return yargs
         .command([
-          (await import('./crawl.js')).default(),
           (await import('./cache-aem-importer.js')).default(),
           (await import('./cache-chrome.js')).default(),
           (await import('./check-urls.js')).default(),
+          (await import('./crawl.js')).default(),
         ])
         .demandCommand(1, '')
         .help();

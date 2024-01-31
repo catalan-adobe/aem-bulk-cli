@@ -80,8 +80,7 @@ export default function cacheAEMImporter({
           describe: 'Path to Excel report file for the found URLs',
           default: 'cache-report.xlsx',
           type: 'string',
-        })
-        .group(['excelReport'], 'Cache Options:');
+        });
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger, AEMBulk,
