@@ -166,3 +166,36 @@ export function withCommonCLIParameters(yargs) {
       default: 1,
     });
 }
+
+export function withCustomCLIParameters(yargs, { inputs = false, workers = false } = {}) {
+  if (inputs) {
+    yargs
+      .option('file', {
+        describe: 'Path to a text file containing the list of URLs to use in the command',
+        type: 'string',
+      })
+      .option('interactive', {
+        describe: 'Start the application in interactive mode, you will be prompted to copy/paste the list of URLs directly in the terminal. Enter an empty line to finish the process',
+        type: 'boolean',
+      })
+      .option('list-breaker', {
+        alias: 'listBreaker',
+        describe: 'The character to use to signal end of the list in interactive mode. Default is empty line',
+        type: 'string',
+        default: '',
+      })
+      .conflicts('file', 'interactive')
+      .group(['file', 'interactive', 'listBreaker'], 'Input Options:');
+  }
+
+  if (workers) {
+    yargs
+      .option('workers', {
+        describe: 'Number of workers to use (max. 5)',
+        type: 'number',
+        default: 1,
+      });
+  }
+
+  return yargs;
+}

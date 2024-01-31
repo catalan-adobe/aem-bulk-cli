@@ -13,7 +13,7 @@ import PQueue from 'p-queue';
 import fs from 'fs';
 import path from 'path';
 import { URLPattern } from 'urlpattern-polyfill';
-import { CommonCommandHandler } from '../../src/cli.js';
+import { CommonCommandHandler, withCustomCLIParameters } from '../../src/cli.js';
 import { ExcelWriter } from '../../src/excel.js';
 
 /**
@@ -103,7 +103,7 @@ export default function crawlCmd() {
     command: 'crawl',
     describe: 'Crawl a website to discover and collect URLs',
     builder: (yargs) => {
-      yargs
+      withCustomCLIParameters(yargs, { inputs: false, workers: false })
         .option('origin', {
           alias: 'o',
           describe: 'Origin URL to start crawling from',

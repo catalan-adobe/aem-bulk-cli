@@ -15,7 +15,7 @@ import fp from 'find-free-port';
 import { randomUUID } from 'crypto';
 import { tmpdir } from 'os';
 import { ExcelWriter } from '../src/excel.js';
-import { CommonCommandHandler, readLines, withURLsInputCLIParameters } from '../src/cli.js';
+import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../src/cli.js';
 import { getLogger } from '../src/logger.js';
 
 class PortManager {
@@ -24,10 +24,6 @@ class PortManager {
   constructor(initPort) {
     this.initPort = initPort;
     this.lockedPort = initPort - 1;
-
-    // setInterval(() => {
-    //   console.log(this.#assignedPorts);
-    // }, 250);
   }
 
   async getFreePort() {
@@ -62,15 +58,12 @@ async function getScreenshot(url, browserOptions, logger, AEMBulk) {
     port = await portManager.getFreePort();
 
     [browser, page] = await AEMBulk.Puppeteer.initBrowser({
+      port,
       useLocalChrome: browserOptions.useLocalChrome,
       width: browserOptions.pageWidth,
       adBlocker: browserOptions.adBlocker,
       gdprBlocker: browserOptions.gdprBlocker,
-      // port: msg.port,
       headless: browserOptions.headless,
-      // useLocalChrome: msg.options.useLocalChrome,
-      // headless: true,
-      port,
       userDataDir: tmpDir,
     });
 
@@ -141,7 +134,7 @@ export default function screenshotCmd() {
     command: 'screenshot',
     describe: 'Take full page screenshot for a list of URLs',
     builder: (yargs) => {
-      withURLsInputCLIParameters(yargs)
+      withCustomCLIParameters(yargs, { inputs: true, workers: true })
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for processed URLs',
@@ -276,9 +269,6 @@ export default function screenshotCmd() {
         for (const url of urls) {
           addURLToSCreen(queue, url, logger, browserOptions, AEMBulk);
         }
-
-        // // start the queue
-        // queue.start();
 
         await donePromise;
       } catch (e) {

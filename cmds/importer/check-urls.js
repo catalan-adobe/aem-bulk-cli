@@ -11,7 +11,7 @@
  */
 import PQueue from 'p-queue';
 import fs from 'fs';
-import { CommonCommandHandler, readLines, withURLsInputCLIParameters } from '../../src/cli.js';
+import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
 import { ExcelWriter } from '../../src/excel.js';
 
 /**
@@ -23,7 +23,7 @@ export default function CheckURLsCmd() {
     command: 'check-urls',
     describe: 'Check HTTP Status for a list of URLs',
     builder: (yargs) => {
-      withURLsInputCLIParameters(yargs)
+      withCustomCLIParameters(yargs, { inputs: true, workers: true })
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for the found URLs',

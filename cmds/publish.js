@@ -14,7 +14,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { CommonCommandHandler, readLines, withURLsInputCLIParameters } from '../src/cli.js';
+import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../src/cli.js';
 import { ExcelWriter } from '../src/excel.js';
 import { buildAPIURL } from '../src/aem.js';
 
@@ -24,14 +24,14 @@ import { buildAPIURL } from '../src/aem.js';
 
 export default function publishCmd() {
   return {
-    command: 'publish <options>',
-    describe: `Publish pages to AEM Edge Delivery (URLs should be of type "https://<branch>--<repo>--<owner>.hlx.page/<path>")`,
+    command: 'publish',
+    describe: 'Publish pages to AEM Edge Delivery (URLs should be of type "https://<branch>--<repo>--<owner>.hlx.page/<path>")',
     builder: (yargs) => {
-      withURLsInputCLIParameters(yargs)
+      withCustomCLIParameters(yargs, { inputs: true, workers: true })
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for the URLs to publish',
-          default: `publish-report.xlsx`,
+          default: 'publish-report.xlsx',
           type: 'string',
         })
         .option('delete', {
@@ -45,8 +45,6 @@ export default function publishCmd() {
           type: 'string',
         })
         .group(['stage', 'delete'], 'Publish Options:');
-
-      console.log(yargs.argv);
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger,

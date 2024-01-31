@@ -13,7 +13,7 @@ import PQueue from 'p-queue';
 import fs from 'fs';
 import {
   CommonCommandHandler, readLines,
-  withBrowserCLIParameters, withURLsInputCLIParameters,
+  withBrowserCLIParameters, withCustomCLIParameters,
 } from '../../src/cli.js';
 import { ExcelWriter } from '../../src/excel.js';
 
@@ -74,7 +74,7 @@ export default function cacheAEMImporter({
         bYargs = commandParameters(bYargs);
       }
       bYargs = withBrowserCLIParameters(bYargs);
-      withURLsInputCLIParameters(bYargs)
+      withCustomCLIParameters(yargs, { inputs: true, workers: true })
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for the found URLs',

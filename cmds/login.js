@@ -12,7 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { CommonCommandHandler } from '../src/cli.js';
+import { CommonCommandHandler, withCustomCLIParameters } from '../src/cli.js';
 
 const GLOBAL_TIMEOUT = 120000;
 /**
@@ -24,7 +24,7 @@ export default function loginCmd() {
     command: 'login',
     describe: 'Login to an AEM Edge Delivery project and save credentials locally (~/aem-ed-credentials.json)',
     builder: (yargs) => {
-      yargs
+      withCustomCLIParameters(yargs, { inputs: false, workers: false })
         .option('project-path', {
           alias: 'projectPath',
           describe: 'Coordinates of the AEM Website (/{owner}/{repo}/{ref})',
