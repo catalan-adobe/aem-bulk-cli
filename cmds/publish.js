@@ -22,16 +22,16 @@ import { buildAPIURL } from '../src/aem.js';
  * main
  */
 
-function publishCmd(stage) {
+export default function publishCmd() {
   return {
-    command: stage,
-    describe: `Publish pages to ${stage} stage on AEM Edge Delivery (URLs should be of type "https://<branch>--<repo>--<owner>.hlx.page/<path>")`,
+    command: 'publish <options>',
+    describe: `Publish pages to AEM Edge Delivery (URLs should be of type "https://<branch>--<repo>--<owner>.hlx.page/<path>")`,
     builder: (yargs) => {
       withURLsInputCLIParameters(yargs)
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for the URLs to publish',
-          default: `${stage}-report.xlsx`,
+          default: `publish-report.xlsx`,
           type: 'string',
         })
         .option('delete', {
@@ -39,12 +39,19 @@ function publishCmd(stage) {
           default: false,
           type: 'boolean',
         })
-        .group(['excelReport'], 'Publish Options:');
+        .option('stage', {
+          describe: 'Edge Delivery stage to publish to (choices: preview (hlx.page) or live (hlx.live))',
+          default: 'preview',
+          type: 'string',
+        })
+        .group(['stage', 'delete'], 'Publish Options:');
+
+      console.log(yargs.argv);
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger,
     }) => {
-      logger.debug(`${stage} main handler - start - ${logger.level}`);
+      logger.debug(`${argv.stage} main handler - start - ${logger.level}`);
 
       let excelReport;
 
@@ -65,7 +72,7 @@ function publishCmd(stage) {
         // init excel report
         excelReport = new ExcelWriter({
           filename: argv.excelReport,
-          headers: ['url', 'api url', `${stage} status`],
+          headers: ['url', 'api url', `${argv.stage} status`],
           formatRowFn: (record) => [record.url, record.apiURL, record.status],
           writeEvery: Math.min(Math.round(urls.length / 10), 1000),
         });
@@ -107,7 +114,7 @@ function publishCmd(stage) {
           authToken = process.env.FRANKLIN_API_TOKEN;
         } else if (fs.existsSync(authFile)) {
           const credentials = JSON.parse(fs.readFileSync(authFile));
-          const tempAPIURL = buildAPIURL(stage, urls[0]);
+          const tempAPIURL = buildAPIURL(argv.stage, urls[0]);
           if (tempAPIURL.includes(credentials.path)) {
             authToken = credentials.auth_token;
           }
@@ -122,7 +129,7 @@ function publishCmd(stage) {
         // add items to queue
         urls.forEach((url) => {
           queue.add(async () => {
-            const apiURL = buildAPIURL(stage, url);
+            const apiURL = buildAPIURL(argv.stage, url);
             try {
               logger.debug(`fetching ${apiURL}`);
               const resp = await fetch(apiURL, reqOptions);
@@ -134,7 +141,7 @@ function publishCmd(stage) {
               let publishStatus = resp.status;
               if (!argv.delete) {
                 const apiResp = await resp.json();
-                publishStatus = apiResp[stage].status;
+                publishStatus = apiResp[argv.stage].status;
               }
               const publishStatusOK = argv.delete ? publishStatus === 204 : publishStatus === 200;
               if (publishStatusOK) {
@@ -164,9 +171,9 @@ function publishCmd(stage) {
 
         await donePromise;
       } catch (e) {
-        logger.error(`${stage} main handler: ${e.stack}`);
+        logger.error(`${argv.stage} main handler: ${e.stack}`);
       } finally {
-        logger.debug(`${stage} main handler - finally`);
+        logger.debug(`${argv.stage} main handler - finally`);
         if (excelReport) {
           logger.info('writing excel report');
           await excelReport.write();
@@ -174,12 +181,4 @@ function publishCmd(stage) {
       }
     }),
   };
-}
-
-export function previewCmd() {
-  return publishCmd('preview');
-}
-
-export function liveCmd() {
-  return publishCmd('live');
 }

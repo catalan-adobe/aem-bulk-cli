@@ -41,8 +41,7 @@ const MIN_MSG = 'You need at least one command.';
   const yyy = yargs();
   const argv = withCommonCLIParameters(yyy, logger)
     .command([
-      (await import('./cmds/publish.js')).previewCmd(),
-      (await import('./cmds/publish.js')).liveCmd(),
+      (await import('./cmds/publish.js')).default(),
       (await import('./cmds/login.js')).default(),
       (await import('./cmds/screenshot.js')).default(),
       (await import('./cmds/lighthouse.js')).default(),
