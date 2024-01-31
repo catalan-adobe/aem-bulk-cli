@@ -109,7 +109,6 @@ export class CommonCommandHandler {
       } finally {
         this.logger.debug('cli handler done');
       }
-      // return Promise.resolve();
     };
   }
 }
@@ -127,34 +126,27 @@ export function withBrowserCLIParameters(yargs) {
       describe: 'Disable JavaScript',
       type: 'boolean',
       default: false,
-    })
-    .group(['headless', 'disable-js'], 'Browser Options:');
+    });
 }
 
 export function withURLsInputCLIParameters(yargsInst) {
   return yargsInst
     .option('interactive', {
-      alias: 'i',
       describe: 'Start the application in interactive mode, you will be prompted to copy/paste the list of URLs directly in the terminal. Enter an empty line to finish the process',
       type: 'boolean',
     })
-    .option('file', {
-      alias: 'f',
-      describe: 'Path to a text file containing the list of URLs to deliver (urls pattern: "https://<branch>--<repo>--<owner>.hlx.page/<path>")',
-      type: 'string',
-    })
     .option('list-breaker', {
-      alias: 'b',
+      alias: 'listBreaker',
       describe: 'The character to use to signal end of the list in interactive mode. Default is empty line',
       type: 'string',
       default: '',
     })
-    .conflicts('f', 'i')
-    .group(['i', 'f', 'b'], 'Common Options:');
+    .conflicts('file', 'interactive')
+    .group(['file', 'interactive', 'listBreaker'], 'Input Options:');
 }
 
-export function withCommonCLIParameters(yargsInst, logger) {
-  return yargsInst
+export function withCommonCLIParameters(yargs) {
+  return yargs
     .option('log-level', {
       alias: 'logLevel',
       describe: 'Log level',
@@ -168,17 +160,9 @@ export function withCommonCLIParameters(yargsInst, logger) {
       type: 'string',
       normalize: true,
     })
-
-    if (workers) {
-      yargsInst
-        .option('workers', {
-          describe: 'Number of workers to use (max. 5)',
-          type: 'number',
-          default: 1,
-        });
-
-    }
-    //.group(['workers', 'log-file', 'log-level'], 'Common Options:');
-
-    return yargsInst;
+    .option('workers', {
+      describe: 'Number of workers to use (max. 5)',
+      type: 'number',
+      default: 1,
+    });
 }
