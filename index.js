@@ -48,15 +48,11 @@ const MIN_MSG = 'You need at least one command.';
     .strictCommands(true)
     .scriptName('aem-bulk')
     .usage('Usage: $0 <command> [options]')
-    // .parserConfiguration({ 'camel-case-expansion': false })
     .env('AEM_BULK')
-    // .check((a) => envAwareStrict(a, argv.parsed.aliases))
     .showHelpOnFail(true)
     .fail(cliFailFn)
-    // .exitProcess(args.indexOf('--get-yargs-completions') > -1)
     .demandCommand(1, MIN_MSG)
-    // .epilogue('use <command> --help to get command specific details.\n\nfor more information, find our manual at https://github.com/adobe/helix-cli')
-    .wrap(120/* yyy.terminalWidth() */)
+    .wrap(120)
     .help()
     .parse(hideBin(process.argv));
 
