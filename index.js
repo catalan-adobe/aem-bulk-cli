@@ -27,13 +27,11 @@ const MIN_MSG = 'You need at least one command.';
 
   function cliFailFn(message, err, argv) {
     const msg = err && err.message ? err.message : message;
-    if (msg) {
-      // eslint-disable-next-line no-console
-      console.error(msg);
-    }
     if (msg === MIN_MSG || /.*Unknown argument.*/.test(msg) || /.*Not enough non-option arguments:.*/.test(msg)) {
-      // eslint-disable-next-line no-console
-      console.error('\n%s', argv.help());
+      logger.error('\n%s', argv.help());
+    }
+    if (msg) {
+      logger.error(msg);
     }
     process.exit(1);
   }
