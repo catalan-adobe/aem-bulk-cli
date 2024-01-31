@@ -9,7 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "semantic-release": "semantic-release"
   },
-  "author": "",
+  "author": "catalan@adobe.com",
   "license": "Apache-2.0",
   "dependencies": {
     "exceljs": "4.4.0",
