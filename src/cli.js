@@ -104,7 +104,6 @@ export class CommonCommandHandler {
           AEMBulk: await import('franklin-bulk-shared'),
         });
       } catch (e) {
-        this.logger.error(e.stack);
         throw e;
       } finally {
         this.logger.debug('cli handler done');
