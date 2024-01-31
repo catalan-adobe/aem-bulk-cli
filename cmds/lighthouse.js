@@ -16,7 +16,7 @@ import { randomUUID } from 'crypto';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../src/cli.js';
 import { ExcelWriter } from '../src/excel.js';
 
-const GOOGLE_API_ENV_KEY = 'LH_GOOGLE_API_KEY'; // related argv property: googleApiKey
+const GOOGLE_API_ENV_KEY = 'AEM_BULK_LH_GOOGLE_API_KEY';
 const LH_CATEGORIES_KEYS = ['performance', 'accessibility', 'best-practices', 'seo'];
 const LH_AUDIT_KEYS = ['speed-index', 'first-contentful-paint', 'largest-contentful-paint', 'total-blocking-time', 'cumulative-layout-shift'];
 
@@ -117,13 +117,13 @@ export default function lighthouseCmd() {
     builder: (yargs) => {
       withCustomCLIParameters(yargs, { inputs: true, workers: true })
         .option('psi-type', {
-          alias: 't',
+          alias: 'psiType',
           describe: 'Type of PSI check to use (local|google)',
           default: 'google',
           type: 'string',
         })
         .option('excel-report', {
-          alias: 'e',
+          alias: 'excelReport',
           describe: 'Path to Excel report file for analysed URLs',
           default: 'lighthouse-report.xlsx',
           type: 'string',
