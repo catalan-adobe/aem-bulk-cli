@@ -1,3 +1,23 @@
+# [1.7.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.6.1...v1.7.0) (2024-02-01)
+
+
+### Bug Fixes
+
+* better handle cli errors ([cfbd473](https://github.com/catalan-adobe/aem-bulk-cli/commit/cfbd473fb3f28485df08ba4fd0dfaeb5e719d83f))
+* cli fail function ([5ab6f1d](https://github.com/catalan-adobe/aem-bulk-cli/commit/5ab6f1dc952c417534e397a84931afc4e763e802))
+* do not execute browser smart scroll when javascript is disabled ([0298e4d](https://github.com/catalan-adobe/aem-bulk-cli/commit/0298e4d5fe64b20e0f1fa52b874502a1ee454520))
+* importer crawl command ([2106d1e](https://github.com/catalan-adobe/aem-bulk-cli/commit/2106d1e1a5fe7dc7f16b0d2536171be976323b80))
+* lighthouse cli parameter aliases and environment variable key for google psi api ([5ada59b](https://github.com/catalan-adobe/aem-bulk-cli/commit/5ada59b3e9f3d09040bef56ac6248d6110e4ac4e))
+* move workers max number check out of yargs builder function ([ae11225](https://github.com/catalan-adobe/aem-bulk-cli/commit/ae1122579dd743e47dbcd7f1167a191527bc92d2))
+* pass cli logger to aem bulk shared puppeteer ([b448bed](https://github.com/catalan-adobe/aem-bulk-cli/commit/b448bed00caf8e0be380a9467a8d83d8cff1b01b))
+* remove duplicate error log ([155cf41](https://github.com/catalan-adobe/aem-bulk-cli/commit/155cf4184491183936c55d8b67848dda7ce87b2d))
+
+
+### Features
+
+* add parameters to disable javascript in browser in screenshot command ([a78be96](https://github.com/catalan-adobe/aem-bulk-cli/commit/a78be9600517b4d936e7e0c428f3b97b2035c7ee))
+* enforce local chrome usage in puppeteer ([f257bbc](https://github.com/catalan-adobe/aem-bulk-cli/commit/f257bbc358d3fc07845ebdecf3b3aee0e6f388f7))
+
 ## [1.6.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.6.0...v1.6.1) (2024-01-29)
 
 
