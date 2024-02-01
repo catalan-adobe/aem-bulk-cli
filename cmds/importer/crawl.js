@@ -59,7 +59,9 @@ async function addURLToCrawl(baseUrl, urlPattern, browser, queue, url, logger, A
 
         await np.goto(url, { waitUntil: 'networkidle2' });
 
-        await AEMBulk.Puppeteer.smartScroll(np, { postReset: false });
+        if (np.isJavaScriptEnabled()) {
+          await AEMBulk.Puppeteer.smartScroll(np, { postReset: false });
+        }
 
         const links = [];
         const hrefs = await np.$$eval('a', (l) => l.map((a) => a.href).filter((href) => href.length > 0));

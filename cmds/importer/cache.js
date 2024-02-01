@@ -30,7 +30,9 @@ async function addURLToCache(browser, queue, url, logger, AEMBulk) {
         // load page in browser
         np = await browser.newPage();
         const resp = await np.goto(url.transformed);
-        await AEMBulk.Puppeteer.smartScroll(np, { postReset: false });
+        if (np.isJavaScriptEnabled()) {
+          await AEMBulk.Puppeteer.smartScroll(np, { postReset: false });
+        }
 
         // compute status
         let status = 'done';
