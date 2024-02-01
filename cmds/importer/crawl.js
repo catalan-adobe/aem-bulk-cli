@@ -57,13 +57,12 @@ async function addURLToCrawl(baseUrl, urlPattern, browser, queue, url, logger, A
       try {
         np = await browser.newPage();
 
-        await np.goto(url);
+        await np.goto(url, { waitUntil: 'networkidle2' });
 
         await AEMBulk.Puppeteer.smartScroll(np, { postReset: false });
 
-        const hrefs = await np.$$eval('a', (links) => links.map((a) => a.href).filter((href) => href.length > 0));
-
         const links = [];
+        const hrefs = await np.$$eval('a', (links) => links.map((a) => a.href).filter((href) => href.length > 0));
         hrefs.forEach((href) => {
           const u = new URL(href);
           const link = `${u.origin}${u.pathname}`;
@@ -78,7 +77,7 @@ async function addURLToCrawl(baseUrl, urlPattern, browser, queue, url, logger, A
           links,
         };
       } catch (e) {
-        logger.error(`${e.name}: ${e.message} (${e.stack})`);
+        logger.error(`${url} ${e.name}: ${e.message} (${e.stack})`);
         return {
           url,
           error: e.message,
@@ -105,16 +104,20 @@ export default function crawlCmd() {
     builder: (yargs) => {
       withCustomCLIParameters(yargs, { inputs: false, workers: false })
         .option('origin', {
-          alias: 'o',
           describe: 'Origin URL to start crawling from',
           demandOption: true,
           type: 'string',
         })
         .option('filter', {
-          alias: 's',
-          describe: 'Filter to apply to the URLs. Only URLs containing this string will be crawled',
+          describe: 'Filter to apply to the URLs. Only URLs containing this string will be crawled (example: "/blog/*")',
           type: 'string',
         })
+        .option('timeout', {
+          describe: 'HTTP Timeout in seconds',
+          type: 'number',
+          default: 10,
+        })
+        .group(['origin', 'filter', 'timeout'], 'Crawl Options:')
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for the found URLs',
@@ -126,12 +129,6 @@ export default function crawlCmd() {
           describe: 'Path to text for the found URLs',
           default: 'urls.txt',
           type: 'string',
-        })
-        .option('timeout', {
-          alias: 't',
-          describe: 'HTTP Timeout in seconds',
-          type: 'number',
-          default: 10,
         });
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
@@ -255,8 +252,6 @@ export default function crawlCmd() {
                 urlsFileStream.write(finalUrls.map((fu) => fu.url).join('\n'));
                 urlsFileStream.write('\n');
               }
-
-              // await excelReport.write();
             }
           });
 
