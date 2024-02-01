@@ -175,9 +175,9 @@ export default function screenshotCmd() {
           type: 'number',
           default: 500,
         })
-        .option('no-headless', {
-          alias: 'noHeadless',
-          describe: 'No headless browser',
+        .option('headless', {
+          default: true,
+          describe: 'Headless browser',
           type: 'boolean',
         })
         .option('no-ad-blocker', {
