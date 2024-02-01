@@ -87,6 +87,7 @@ export class CommonCommandHandler {
 
         if (argv.workers > 5) {
           this.logger.warn('Warning: limiting maximum number of workers to 5!');
+          /* eslint-disable-next-line no-param-reassign */
           argv.workers = 5;
         }
 
@@ -95,7 +96,7 @@ export class CommonCommandHandler {
         });
 
         /**
-         * execute cmdFn
+         * execute cmd handler
          */
 
         await cmdFn({
@@ -103,8 +104,6 @@ export class CommonCommandHandler {
           logger: this.logger,
           AEMBulk: await import('franklin-bulk-shared'),
         });
-      } catch (e) {
-        throw e;
       } finally {
         this.logger.debug('cli handler done');
       }

@@ -127,8 +127,6 @@ export default function CheckURLsCmd() {
         queue.start();
 
         await donePromise;
-      } catch (e) {
-        throw e;
       } finally {
         logger.debug('check-urls main handler - finally');
         if (excelReport) {

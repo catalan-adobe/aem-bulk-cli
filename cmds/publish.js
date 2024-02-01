@@ -167,8 +167,6 @@ export default function publishCmd() {
         queue.start();
 
         await donePromise;
-      } catch (e) {
-        throw e;
       } finally {
         logger.debug(`${argv.stage} main handler - finally`);
         if (excelReport) {
