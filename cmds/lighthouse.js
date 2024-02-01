@@ -58,7 +58,9 @@ async function runLighthouse(url, type, apiKey, AEMBulk) {
     let page;
 
     try {
-      [browser, page] = await AEMBulk.Puppeteer.initBrowser();
+      [browser, page] = await AEMBulk.Puppeteer.initBrowser({
+        useLocalChrome: true,
+      });
 
       const res = await AEMBulk.Puppeteer.runStepsSequence(
         page,

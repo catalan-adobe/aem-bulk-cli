@@ -151,12 +151,6 @@ export default function screenshotCmd() {
           type: 'string',
         })
         // options related to browser handling
-        .option('use-local-chrome', {
-          alias: 'useLocalChrome',
-          describe: 'Use local Chrome installation',
-          type: 'boolean',
-          default: false,
-        })
         .option('disable-js', {
           alias: 'disableJS',
           describe: 'Disable JavaScript',
@@ -199,7 +193,6 @@ export default function screenshotCmd() {
         .group([
           'page-width', 'disable-js', 'remove-selector', 'post-load-wait',
           'no-headless', 'no-ad-blocker', 'no-gdpr-blocker',
-          'use-local-chrome',
         ], 'Browser Options:')
 
         .help();
@@ -214,7 +207,7 @@ export default function screenshotCmd() {
        */
 
       const browserOptions = {
-        useLocalChrome: argv.useLocalChrome,
+        useLocalChrome: true,
         screenshotsFolder: argv.screenshotsFolder,
         pageWidth: argv.pageWidth,
         removeSelectors: argv.removeSelector,

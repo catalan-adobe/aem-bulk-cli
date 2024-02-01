@@ -136,12 +136,10 @@ export default function cacheAEMImporter({
 
       try {
         const browserOptions = {
+          useLocalChrome: true,
           headless: argv.headless,
           disableJS: argv.disableJS,
         };
-        if (argv.useLocalChrome) {
-          browserOptions.useLocalChrome = true;
-        }
         if (argv.userDataDir) {
           browserOptions.userDataDir = argv.userDataDir;
         }

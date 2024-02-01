@@ -285,7 +285,9 @@ export default function crawlCmd() {
         let browser;
 
         try {
-          [browser] = await AEMBulk.Puppeteer.initBrowser();
+          [browser] = await AEMBulk.Puppeteer.initBrowser({
+            useLocalChrome: true,
+          });
 
           // triggered each time a job is completed
           queue.on('completed', async (result) => {

@@ -31,13 +31,7 @@ export default function loginCmd() {
           type: 'string',
         })
         .demandOption(['projectPath'])
-        .option('use-local-chrome', {
-          alias: 'useLocalChrome',
-          describe: 'Use local Chrome for browser interaction',
-          type: 'boolean',
-          default: false,
-        })
-        .group(['project-path', 'use-local-chrome'], 'Login Options:');
+        .group(['project-path'], 'Login Options:');
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger, AEMBulk,
@@ -48,10 +42,10 @@ export default function loginCmd() {
 
       try {
         [browser] = await AEMBulk.Puppeteer.initBrowser({
+          useLocalChrome: true,
           headless: false,
           adBlocker: false,
           gdprBlocker: false,
-          useLocalChrome: argv.useLocalChrome,
         });
 
         // Create a page
