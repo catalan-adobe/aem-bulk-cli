@@ -41,7 +41,7 @@ const MIN_MSG = 'You need at least one command.';
 
     return true;
   }
-  
+
   function cliFailFn(message, err, argv) {
     const msg = err && err.message ? err.message : message;
     if (msg) {

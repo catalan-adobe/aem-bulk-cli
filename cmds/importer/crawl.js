@@ -62,7 +62,7 @@ async function addURLToCrawl(baseUrl, urlPattern, browser, queue, url, logger, A
         await AEMBulk.Puppeteer.smartScroll(np, { postReset: false });
 
         const links = [];
-        const hrefs = await np.$$eval('a', (links) => links.map((a) => a.href).filter((href) => href.length > 0));
+        const hrefs = await np.$$eval('a', (l) => l.map((a) => a.href).filter((href) => href.length > 0));
         hrefs.forEach((href) => {
           const u = new URL(href);
           const link = `${u.origin}${u.pathname}`;

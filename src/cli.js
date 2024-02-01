@@ -80,12 +80,12 @@ export class CommonCommandHandler {
           level: argv.logLevel,
           file: argv.logFile,
         });
-        
+
         /**
          * validate cli parameters
         */
 
-        if (argv.workers  > 5) {
+        if (argv.workers > 5) {
           this.logger.warn('Warning: limiting maximum number of workers to 5!');
           argv.workers = 5;
         }

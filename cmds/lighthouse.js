@@ -25,7 +25,7 @@ const LH_AUDIT_KEYS = ['speed-index', 'first-contentful-paint', 'largest-content
  * functions
  */
 
-async function runLighthouse(url, type, apiKey, AEMBulk, logger) {
+async function runLighthouse(url, type, apiKey, AEMBulk) {
   const execId = randomUUID();
   const startTime = Date.now();
 
@@ -99,7 +99,7 @@ async function addURLToAnalyse(type, queue, url, logger, apiKey, AEMBulk) {
   try {
     await queue.add(async () => {
       try {
-        return await runLighthouse(url, type, apiKey, AEMBulk, logger);
+        return await runLighthouse(url, type, apiKey, AEMBulk);
       } catch (e) {
         logger.error(`caching ${url.transformed}: ${e.stack})`);
         return { url: url.original, status: e.message };

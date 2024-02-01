@@ -69,11 +69,10 @@ export default function cacheAEMImporter({
     command: name,
     describe: description,
     builder: (yargs) => {
-      let bYargs = yargs;
       if (commandParameters) {
-        bYargs = commandParameters(bYargs);
+        commandParameters(yargs);
       }
-      bYargs = withBrowserCLIParameters(bYargs);
+      withBrowserCLIParameters(yargs);
       withCustomCLIParameters(yargs, { inputs: true, workers: true })
         .option('excel-report', {
           alias: 'excelReport',
