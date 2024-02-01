@@ -15,24 +15,20 @@ npm install -g aem-bulk
 Usage: aem-bulk <command> [options]
 
 Commands:
-  aem-bulk preview             Publish pages to preview stage on AEM Edge Delivery (URLs should be of type "https://<bra
-                               nch>--<repo>--<owner>.hlx.page/<path>")
-  aem-bulk live                Publish pages to live stage on AEM Edge Delivery (URLs should be of type "https://<branch
-                               >--<repo>--<owner>.hlx.page/<path>")
+  aem-bulk publish             Publish pages to AEM Edge Delivery (URLs should be of type "https://<branch>--<repo>--<ow
+                               ner>.hlx.page/<path>")
   aem-bulk login               Login to an AEM Edge Delivery project and save credentials locally (~/aem-ed-credentials.
                                json)
   aem-bulk screenshot          Take full page screenshot for a list of URLs
   aem-bulk lighthouse          Execute Lighthouse analysis for a list of URLs
   aem-bulk importer <command>  importer group
 
-Common Options:
-  --workers                Number of workers to use (max. 5)                                       [number] [default: 1]
-  --log-file, --logFile    Log file                                                                             [string]
-  --log-level, --logLevel  Log level              [string] [choices: "debug", "info", "warn", "error"] [default: "info"]
-
 Options:
-  --version  Show version number                                                                               [boolean]
-  --help     Show help                                                                                         [boolean]
+  --version                Show version number                                                                 [boolean]
+  --log-level, --logLevel  Log level              [string] [choices: "debug", "info", "warn", "error"] [default: "info"]
+  --log-file, --logFile    Log file                                                                             [string]
+  --workers                Number of workers to use (max. 5)                                       [number] [default: 1]
+  --help                   Show help                                                                           [boolean]
 ```
 
 
