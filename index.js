@@ -25,14 +25,30 @@ const MIN_MSG = 'You need at least one command.';
 
   logger.debug('aem-bulk-cli init ...');
 
+  function envAwareStrict(args, aliases) {
+    const specialKeys = ['$0', '--', '_'];
+
+    const unknown = [];
+    Object.keys(args).forEach((key) => {
+      if (specialKeys.indexOf(key) === -1 && !(key in aliases)) {
+        unknown.push(key);
+      }
+    });
+
+    if (unknown.length > 0) {
+      return unknown.length === 1 ? `Unknown argument: ${unknown[0]}` : `Unknown arguments: ${unknown.join(', ')}`;
+    }
+
+    return true;
+  }
+  
   function cliFailFn(message, err, argv) {
     const msg = err && err.message ? err.message : message;
-    if (msg === MIN_MSG || /.*Unknown argument.*/.test(msg) || /.*Not enough non-option arguments:.*/.test(msg)) {
-      logger.error('\n%s', argv.help());
-    }
     if (msg) {
       logger.error(msg);
     }
+    /* eslint-disable no-console */
+    console.error(argv.help());
     process.exit(1);
   }
 
@@ -49,7 +65,7 @@ const MIN_MSG = 'You need at least one command.';
     .scriptName('aem-bulk')
     .usage('Usage: $0 <command> [options]')
     .env('AEM_BULK')
-    .showHelpOnFail(true)
+    .check((a) => envAwareStrict(a, yyy.parsed.aliases))
     .fail(cliFailFn)
     .demandCommand(1, MIN_MSG)
     .wrap(120)

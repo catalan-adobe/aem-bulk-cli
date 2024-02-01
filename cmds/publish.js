@@ -62,8 +62,7 @@ export default function publishCmd() {
           // Read the list of URLs from the file
           urls = fs.readFileSync(argv.file, 'utf-8').split('\n').filter(Boolean);
         } else {
-          logger.warn('Please specify either a file or interactive mode');
-          process.exit(1);
+          throw new Error('Please specify either --file or --interactive mode');
         }
         logger.info(`Processing ${urls.length} URLs with ${argv.workers} workers`);
 
@@ -154,7 +153,7 @@ export default function publishCmd() {
                 status: publishStatus,
               };
             } catch (error) {
-              logger.error(`fetch ${url}: ${error}`);
+              logger.error(`publish ${url} on ${argv.stage} stage: ${error}`);
               return {
                 url,
                 apiURL,
@@ -169,7 +168,7 @@ export default function publishCmd() {
 
         await donePromise;
       } catch (e) {
-        logger.error(`${argv.stage} main handler: ${e.stack}`);
+        throw e;
       } finally {
         logger.debug(`${argv.stage} main handler - finally`);
         if (excelReport) {
