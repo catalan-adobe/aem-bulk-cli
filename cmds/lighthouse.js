@@ -15,6 +15,7 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../src/cli.js';
 import { ExcelWriter } from '../src/excel.js';
+import { getLogger } from '../src/logger.js';
 
 const GOOGLE_API_ENV_KEY = 'AEM_BULK_LH_GOOGLE_API_KEY';
 const LH_CATEGORIES_KEYS = ['performance', 'accessibility', 'best-practices', 'seo'];
@@ -24,7 +25,7 @@ const LH_AUDIT_KEYS = ['speed-index', 'first-contentful-paint', 'largest-content
  * functions
  */
 
-async function runLighthouse(url, type, apiKey, AEMBulk) {
+async function runLighthouse(url, type, apiKey, AEMBulk, logger) {
   const execId = randomUUID();
   const startTime = Date.now();
 
@@ -68,6 +69,7 @@ async function runLighthouse(url, type, apiKey, AEMBulk) {
         [
           AEMBulk.Puppeteer.Steps.runLighthouseCheck(),
         ],
+        getLogger('puppeteer'),
       );
 
       const duration = Date.now() - startTime;
@@ -97,7 +99,7 @@ async function addURLToAnalyse(type, queue, url, logger, apiKey, AEMBulk) {
   try {
     await queue.add(async () => {
       try {
-        return await runLighthouse(url, type, apiKey, AEMBulk);
+        return await runLighthouse(url, type, apiKey, AEMBulk, logger);
       } catch (e) {
         logger.error(`caching ${url.transformed}: ${e.stack})`);
         return { url: url.original, status: e.message };

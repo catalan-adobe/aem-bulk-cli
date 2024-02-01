@@ -88,7 +88,7 @@ async function getScreenshot(url, browserOptions, logger, AEMBulk) {
           outputFolder: browserOptions.screenshotsFolder,
         }),
       ],
-      getLogger(`browser-${execId}`),
+      getLogger(`puppeteer-${execId}`),
     );
 
     // cool down
