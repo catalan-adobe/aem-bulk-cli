@@ -28,7 +28,7 @@
     "@semantic-release/github": "9.2.6",
     "@semantic-release/npm": "11.0.2",
     "@types/yargs": "17.0.32",
-    "eslint": "8.55.0",
+    "eslint": "8.56.0",
     "semantic-release": "23.0.0"
   }
 }
