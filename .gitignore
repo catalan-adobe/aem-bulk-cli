@@ -115,3 +115,4 @@ sections-mapping*/
 cache/
 output*
 *.xlsx
+.chrome-user-data-*
