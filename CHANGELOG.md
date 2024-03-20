@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.7.0...v1.8.0) (2024-03-20)
+
+
+### Features
+
+* improved importer crawl command with new filter parameters and better reporting ([85da654](https://github.com/catalan-adobe/aem-bulk-cli/commit/85da654007563fa6dcd087c82de8711292ffc99f))
+
 # [1.7.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.6.1...v1.7.0) (2024-02-01)
 
 
