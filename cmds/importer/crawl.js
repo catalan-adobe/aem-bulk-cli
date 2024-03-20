@@ -12,16 +12,76 @@
 import PQueue from 'p-queue';
 import fs from 'fs';
 import path from 'path';
-import { URLPattern } from 'urlpattern-polyfill';
+import { isMatch } from 'matcher';
+import { Url } from 'franklin-bulk-shared';
 import { CommonCommandHandler, withCustomCLIParameters } from '../../src/cli.js';
 import { ExcelWriter } from '../../src/excel.js';
+
+function qualifyURLsForCrawl(urls, {
+  baseURL,
+  originURL,
+  URLPatterns,
+  sameDomain = true,
+  keepHash = false,
+}) {
+  return urls.concat(urls.reduce(
+    // for urls with query or hash, concatenate the origin + pathname url to the list
+    // of urls to qualify and crawl
+    (acc, val) => {
+      try {
+        const u = new URL(val);
+        if (u.search !== '' || u.hash !== '') {
+          acc.push(`${u.origin}${u.pathname}`);
+        }
+      } catch (e) {
+        // nothing
+      }
+      return acc;
+    },
+    [],
+  )).map((url) => {
+    const result = url.url ? url : { url };
+    result.originalURL = result.url;
+    result.sourceURL = originURL;
+    result.status = 'todo';
+    const u = Url.isValidHTTP(result.url);
+    let ext = '';
+
+    if (!keepHash && u) {
+      result.url = `${u.origin}${u.pathname}${u.search}`;
+      ext = path.parse(`${u.origin}${u.pathname}` || '').ext;
+    }
+
+    if (!u) {
+      result.status = 'excluded';
+      result.message = 'invalid url';
+    } else if (sameDomain && !result.url.startsWith(baseURL)) {
+      result.status = 'excluded';
+      result.message = `not same origin as base URL ${baseURL}`;
+    } else if ((ext !== '' && !ext.includes('htm'))) {
+      result.status = 'excluded';
+      result.message = 'not an html page';
+    } else {
+      const excludedFromURLPatterns = URLPatterns.find(
+        (pat) => !(isMatch(`${u.pathname}${u.search}`, pat.pattern) === pat.expect),
+      );
+      if (excludedFromURLPatterns) {
+        const message = excludedFromURLPatterns.expect
+          ? `does not match any including filter ${URLPatterns.filter((f) => f.expect).map((f) => f.pattern).join(', ')}`
+          : `matches excluding filter ${excludedFromURLPatterns.pattern}`;
+        result.status = 'excluded';
+        result.message = message;
+      }
+    }
+    return result;
+  });
+}
 
 /**
  * functions
  */
 
 async function handleSitemaps(queue, sitemaps, AEMBulk, options = {}) {
-  // eslint-disable-next-line no-console
   sitemaps.forEach((s) => options.logger.info(`new sitemap to crawl ${s}`));
 
   sitemaps.forEach(async (sitemap) => {
@@ -29,7 +89,6 @@ async function handleSitemaps(queue, sitemaps, AEMBulk, options = {}) {
       try {
         await queue.add(async () => {
           try {
-            // eslint-disable-next-line no-console
             options.logger.debug(`crawling sitemap ${sitemap}`);
             const s = await AEMBulk.Web.parseSitemapFromUrl(sitemap, {
               timeout: options.timeout,
@@ -49,49 +108,97 @@ async function handleSitemaps(queue, sitemaps, AEMBulk, options = {}) {
   });
 }
 
-async function addURLToCrawl(baseUrl, urlPattern, browser, queue, url, logger, AEMBulk) {
+async function addURLToCrawl(url, queue, AEMBulk, logger, { // options
+  baseUrl,
+  pacingDelay,
+  URLPatterns,
+  retries = 2,
+}) {
+  const uuid = crypto.randomUUID();
   try {
     await queue.add(async () => {
-      let np;
+      const userDataDir = path.join(process.cwd(), `.chrome-user-data-${uuid}`);
+      let browser;
+      let page;
+
+      const crawlResult = {
+        url,
+        status: 'done',
+        message: '',
+        links: [],
+      };
+
+      // pacing delay
+      await AEMBulk.Time.sleep(pacingDelay);
 
       try {
-        np = await browser.newPage();
+        if (!Url.isValidHTTP(url)) {
+          // invalid url, do not proceed!
+          crawlResult.status = 'invalid';
+          crawlResult.message = 'invalid url';
+        } else {
+          [browser, page] = await AEMBulk.Puppeteer.initBrowser({
+            port: 0,
+            headless: true,
+            useLocalChrome: true,
+            userDataDir,
+            extraArgs: ['--disable-features=site-per-process,IsolateOrigins,sitePerProcess'],
+          });
 
-        await np.goto(url, { waitUntil: 'networkidle2' });
+          page = await browser.newPage();
 
-        if (np.isJavaScriptEnabled()) {
-          await AEMBulk.Puppeteer.smartScroll(np, { postReset: false });
-        }
+          const resp = await page.goto(url, { waitUntil: 'networkidle2' });
 
-        const links = [];
-        const hrefs = await np.$$eval('a', (l) => l.map((a) => a.href).filter((href) => href.length > 0));
-        hrefs.forEach((href) => {
-          const u = new URL(href);
-          const link = `${u.origin}${u.pathname}`;
-          const matchesUrlPattern = urlPattern ? urlPattern.test(link) : true;
-          if (u.origin === baseUrl && matchesUrlPattern) {
-            links.push(link);
+          // compute status
+          if (resp.status() >= 400) {
+            // error -> stop
+            crawlResult.status = 'error';
+            crawlResult.message = `status code ${resp.status()}`;
+          } else if (resp.request()?.redirectChain()?.length > 0) {
+            // redirect -> stop
+            crawlResult.status = 'redirect';
+            crawlResult.message = `redirected to ${resp.url()}`;
+          } else {
+            // ok -> collect links
+            if (page.isJavaScriptEnabled()) {
+              await AEMBulk.Puppeteer.smartScroll(page, { postReset: false });
+            }
+
+            // collect links
+            const hrefs = await page.$$eval('a', (l) => l.map((a) => a.href).filter((href) => href.length > 0));
+
+            const qURLs = qualifyURLsForCrawl(hrefs, {
+              baseURL: baseUrl,
+              originURL: url,
+              URLPatterns,
+            });
+
+            crawlResult.links = qURLs;
           }
-        });
-
-        return {
-          url,
-          links,
-        };
+        }
       } catch (e) {
         logger.error(`${url} ${e.name}: ${e.message} (${e.stack})`);
-        return {
-          url,
-          error: e.message,
-        };
-      } finally {
-        if (browser && np) {
-          np.close();
+        if ((retries - 1) >= 0) {
+          logger.warn(`retrying ${url} (${retries} left)`);
+          crawlResult.status = 'retry';
+          crawlResult.retries = retries - 1;
+        } else {
+          logger.warn(`no more retries for ${url}, mark as error`);
+          crawlResult.status = 'error';
+          crawlResult.message = e.message;
         }
+      } finally {
+        if (browser) {
+          await browser.close();
+        }
+
+        fs.rmSync(userDataDir, { recursive: true, force: true });
       }
+      return crawlResult;
     });
   } catch (e) {
-    logger.debug(e);
+    logger.error('addURLToCrawl error:');
+    logger.error(e);
   }
 }
 
@@ -110,16 +217,38 @@ export default function crawlCmd() {
           demandOption: true,
           type: 'string',
         })
-        .option('filter', {
-          describe: 'Filter to apply to the URLs. Only URLs containing this string will be crawled (example: "/blog/*")',
+        .option('inclusion-file', {
+          alias: 'inclusionFile',
+          describe: 'Text file containing a list of URLs to include in the crawl',
           type: 'string',
+        })
+        .option('exclusion-file', {
+          alias: 'exclusionFile',
+          describe: 'Text file containing a list of URLs to exclude from the crawl',
+          type: 'string',
+        })
+        .option('inclusion-filter', {
+          alias: 'inclusionFilter',
+          describe: 'Filter to apply to the URLs. Only URLs containing this string will be crawled (example: "/blog/*")',
+          type: 'array',
+        })
+        .option('exclusion-filter', {
+          alias: 'exclusionFilter',
+          describe: 'Filter to apply to the URLs. Only URLs *not* containing this string will be crawled (example: "/blog/*" to exclude blog URLs)',
+          type: 'array',
+        })
+        .option('pacing-delay', {
+          alias: 'pacingDelay',
+          describe: 'Delay in milliseconds between each request',
+          type: 'number',
+          default: 250,
         })
         .option('timeout', {
           describe: 'HTTP Timeout in seconds',
           type: 'number',
           default: 10,
         })
-        .group(['origin', 'filter', 'timeout'], 'Crawl Options:')
+        .group(['origin', 'inclusionFile', 'exclusionFile', 'inclusionFilter', 'exclusionFilter', 'pacingDelay', 'timeout'], 'Crawl Options:')
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for the found URLs',
@@ -143,28 +272,41 @@ export default function crawlCmd() {
        */
 
       // extract origin from argv.
-      const { origin } = argv;
+      const { origin, pacingDelay } = argv;
       logger.debug(origin);
 
       // extract base url
-      const u = new URL(origin);
-      const baseUrl = u.origin;
+      const oURL = new URL(origin);
+      const baseUrl = oURL.origin;
       logger.debug(baseUrl);
 
       // init excel report
       const excelReport = new ExcelWriter({
         filename: argv.excelReport,
+        sheetName: 'crawl-report',
         writeEvery: 10,
-        headers: ['URL', 'path', 'path level 1', 'path level 2', 'path level 3', 'filename', 'crawl status', 'error'],
+        headers: ['url', 'source url', 'path', 'path level 1', 'path level 2', 'path level 3', 'filename', 'search', 'crawl status', 'message'],
         formatRowFn: (record) => {
-          const ru = new URL(record.url);
-          const levels = ru.pathname.split('/');
-          const filename = levels[levels.length - 1];
+          let pathname = '';
+          let levels = [];
+          let filename = '';
+          let search = '';
+          const sourceURL = record.sourceURL || '';
+          const ru = Url.isValidHTTP(record.url);
+
+          if (ru) {
+            pathname = ru.pathname;
+            levels = pathname.split('/');
+            filename = levels[levels.length - 1];
+            search = ru.search;
+          }
+
           while (levels.length < 4) {
             levels.push('');
           }
-          const r = [record.url, ru.pathname].concat(levels.slice(1, 4).map((l) => ((l === filename) ? ('') : (l || ' '))));
-          return r.concat([filename, record.status, record.error || '']);
+
+          const r = [record.url, sourceURL, pathname].concat(levels.slice(1, 4).map((l) => ((l === filename) ? ('') : (l || ' '))));
+          return r.concat([filename, search, record.status, record.message || '']);
         },
       });
 
@@ -179,183 +321,249 @@ export default function crawlCmd() {
       const urlsFileStream = fs.createWriteStream(textFile);
 
       // url pattern check
-      const urlPattern = argv.filter ? new URLPattern(argv.filter, baseUrl) : null;
+      const URLPatterns = argv.inclusionFilter
+        ? argv.inclusionFilter.map((f) => ({
+          pattern: f,
+          expect: true,
+        })) : [];
+      if (argv.exclusionFilter) {
+        URLPatterns.push(...argv.exclusionFilter.map((f) => ({
+          pattern: f,
+          expect: false,
+        })));
+      }
+
+      // found urls
+      const foundUrls = [{ url: argv.origin, status: 'todo' }];
+
+      // inclusion list
+      if (argv.inclusionFile) {
+        const inclusionFile = path.isAbsolute(argv.inclusionFile)
+          ? argv.inclusionFile
+          : path.join(process.cwd(), argv.inclusionFile);
+        if (await fs.existsSync(inclusionFile)) {
+          const inclusionList = fs.readFileSync(inclusionFile, 'utf-8').split('\n').filter(Boolean);
+          foundUrls.push(...inclusionList.map((url) => ({ url, status: 'todo' })));
+        } else {
+          logger.warn(`inclusion file not found: ${inclusionFile}`);
+        }
+      }
+
+      // exclusion list
+      if (argv.exclusionFile) {
+        const exclusionFile = path.isAbsolute(argv.exclusionFile)
+          ? argv.exclusionFile
+          : path.join(process.cwd(), argv.exclusionFile);
+        if (await fs.existsSync(exclusionFile)) {
+          const exclusionList = fs.readFileSync(exclusionFile, 'utf-8').split('\n').filter(Boolean);
+          exclusionList.forEach((url) => {
+            const found = foundUrls.find((f) => f.url === url);
+            if (found) {
+              found.status = 'excluded';
+            } else {
+              foundUrls.push({ url, status: 'excluded' });
+            }
+          });
+        } else {
+          logger.warn(`exclusion file not found: ${exclusionFile}`);
+        }
+      }
 
       // initial urls
       const initialURLs = argv.origin ? [argv.origin] : [];
 
-      // found urls
-      const foundUrls = [{ url: argv.origin, status: 'todo' }];
+      foundUrls.filter((u) => u.status === 'todo').forEach((f) => {
+        if (!initialURLs.includes(f.url)) {
+          initialURLs.push(f.url);
+        }
+      });
 
       // init work queue
       const queue = new PQueue({ concurrency: argv.workers });
 
       // concatenate errors and only display them at the end
       queue.on('error', (error) => {
+        logger.error('error in queue:');
         logger.error(error);
       });
 
-      if (origin.includes('robots.txt') || origin.endsWith('.xml')) {
-        logger.info('collect urls from robots.txt and sitemaps');
+      try {
+        if (origin.includes('robots.txt') || origin.endsWith('.xml')) {
+          logger.info('collect urls from robots.txt and sitemaps');
 
-        try {
-          // init constants from CLI args
-          // timeout
-          const timeout = argv.timeout * 1000;
+          try {
+            // init constants from CLI args
+            // timeout
+            const timeout = argv.timeout * 1000;
 
-          // crawling constants
-          const sitemaps = [];
-          // array of errors discovered during crawling
-          // will be displayed at the end
-          const errors = [];
-          // crawling options
-          const crawlOptions = {
-            urlPattern,
-            timeout,
-            logger,
-          };
+            // crawling constants
+            const sitemaps = [];
+            // array of errors discovered during crawling
+            // will be displayed at the end
+            const errors = [];
+            // crawling options
+            const crawlOptions = {
+              timeout,
+              logger,
+            };
 
-          // init first sitemaps list from origin URL
-          if (origin.endsWith('robots.txt')) {
-            const r = await AEMBulk.Web.parseRobotsTxt(origin, { timeout });
-            sitemaps.push(...r.getSitemaps());
-          } else if (origin.indexOf('sitemap') > -1) {
-            sitemaps.push(origin);
-          } else {
-            throw new Error(`unsupported origin URL (${origin}) it should point to a robots.txt or a sitemap`);
-          }
-
-          // triggered each time a job is completed
-          queue.on('completed', async (result) => {
-            if (result?.urls) {
-              // eslint-disable-next-line no-console
-              const uNum = result.urls?.length || 0;
-              const sNum = result.sitemaps?.length || 0;
-              logger.info(`done parsing sitemap ${result.url}, found ${uNum} url(s) and ${sNum} sitemap(s)`);
-              const filteredRes = urlPattern
-                ? result.urls.filter((loc) => urlPattern.test(loc.url))
-                : result.urls;
-              const finalUrls = [];
-              filteredRes.forEach((loc) => {
-                if (!foundUrls.find((f) => loc.url === f.url)) {
-                  finalUrls.push({
-                    url: loc.url,
-                    status: '',
-                  });
-                }
-              });
-
-              finalUrls.forEach(async (loc) => {
-                foundUrls.push(loc);
-                await excelReport.addRow(loc, false);
-              });
-
-              if (urlsFileStream) {
-                urlsFileStream.write(finalUrls.map((fu) => fu.url).join('\n'));
-                urlsFileStream.write('\n');
-              }
+            // init first sitemaps list from origin URL
+            if (origin.endsWith('robots.txt')) {
+              const r = await AEMBulk.Web.parseRobotsTxt(origin, { timeout });
+              sitemaps.push(...r.getSitemaps());
+            } else if (origin.indexOf('sitemap') > -1) {
+              sitemaps.push(origin);
+            } else {
+              throw new Error(`unsupported origin URL (${origin}) it should point to a robots.txt or a sitemap`);
             }
-          });
 
-          // crawl is done
-          // when the queue is idle, display result + errors
-          queue.on('idle', () => {
-            logger.info('Crawling done!');
-            if (errors.length > 0) {
-              // eslint-disable-next-line no-console
-              logger.error('errors:', errors.map((e) => e.message));
-            }
-          });
+            // triggered each time a job is completed
+            queue.on('completed', async (result) => {
+              if (result?.urls) {
+                const uNum = result.urls?.length || 0;
+                const sNum = result.sitemaps?.length || 0;
+                logger.info(`done parsing sitemap ${result.url}, found ${uNum} url(s) and ${sNum} sitemap(s)`);
 
-          await handleSitemaps(queue, sitemaps, AEMBulk, crawlOptions);
+                const filteredRes = qualifyURLsForCrawl(result.urls, {
+                  baseURL: baseUrl,
+                  originURL: result.url,
+                  URLPatterns,
+                });
 
-          await new Promise((resolve) => {
-            queue.on('idle', () => {
-              resolve();
-            });
-          });
-        } catch (e) {
-          logger.error(`${e.toString()}`);
-          throw new Error(`crawler failed: ${e.message}`);
-        } finally {
-          // nothing
-        }
-      } else {
-        logger.info('collect urls from classic browser crawling');
-
-        // global browser and page objects
-        let browser;
-
-        try {
-          [browser] = await AEMBulk.Puppeteer.initBrowser({
-            useLocalChrome: true,
-          });
-
-          // triggered each time a job is completed
-          queue.on('completed', async (result) => {
-            const found = foundUrls.find((f) => result.url === f.url);
-            if (found) {
-              if (result.error) {
-                found.status = 'error';
-                found.error = result.error;
-              } else {
-                found.status = 'done';
-                let newUrlsCtr = 0;
-                result.links.forEach((link) => {
-                  if (!foundUrls.find((f) => link === f.url)) {
-                    foundUrls.push({
-                      url: link,
-                      status: 'todo',
-                    });
-                    addURLToCrawl(baseUrl, urlPattern, browser, queue, link, logger, AEMBulk);
-                    newUrlsCtr += 1;
+                const finalUrls = [];
+                filteredRes.forEach((loc) => {
+                  if (!foundUrls.find((f) => loc.url === f.url)) {
+                    finalUrls.push(loc);
                   }
                 });
-                logger.info(`found ${newUrlsCtr} new url(s)`);
-              }
-              await excelReport.addRow(found, true);
-              if (urlsFileStream) {
-                urlsFileStream.write(`${found.url}\n`);
-              }
-            }
-          });
 
-          for (const url of initialURLs) {
-            logger.debug(`crawl url ${url}`);
-            addURLToCrawl(baseUrl, urlPattern, browser, queue, url, logger, AEMBulk);
-          }
+                finalUrls.forEach(async (loc) => {
+                  foundUrls.push(loc);
+                  await excelReport.addRow(loc);
+                });
 
-          await new Promise((resolve) => {
-            queue.on('idle', () => {
-              logger.debug('handler - queue idle');
-              resolve();
+                if (urlsFileStream) {
+                  urlsFileStream.write(finalUrls.map((fu) => fu.url).join('\n'));
+                  urlsFileStream.write('\n');
+                }
+              }
             });
-          });
-        } catch (e) {
-          logger.debug(e);
-        } finally {
-          logger.debug('handler - finally');
-          if (browser) {
-            browser.close();
+
+            // crawl is done
+            // when the queue is idle, display result + errors
+            queue.on('idle', () => {
+              logger.info('Crawling done!');
+              if (errors.length > 0) {
+                logger.error('errors:', errors.map((e) => e.message));
+              }
+            });
+
+            await handleSitemaps(queue, sitemaps, AEMBulk, crawlOptions);
+
+            await new Promise((resolve) => {
+              queue.on('idle', () => {
+                resolve();
+              });
+            });
+          } catch (e) {
+            logger.error(`${e.toString()}`);
+            throw new Error(`crawler failed: ${e.message}`);
+          }
+        } else {
+          logger.info('collect urls from classic browser crawling');
+
+          try {
+            // triggered each time a job is completed
+            queue.on('completed', async (result) => {
+              const found = foundUrls.find((f) => result.url === f.url);
+              if (found) {
+                found.status = result.status;
+                if (result.message && result.message.length > 0) {
+                  found.message = result.message;
+                }
+                if (result.status === 'retry') {
+                  found.status = 'retry';
+                  addURLToCrawl(result.url, queue, AEMBulk, logger, {
+                    baseUrl,
+                    pacingDelay,
+                    URLPatterns,
+                    retries: result.retries,
+                  });
+                } else if (result.status !== 'error') {
+                  let newUrlsCtr = 0;
+                  result.links.forEach(async (link) => {
+                    const fff = foundUrls.find((f) => link.url === f.url);
+                    if (!fff) {
+                      foundUrls.push(link);
+                      if (link.status === 'todo') {
+                        addURLToCrawl(link.url, queue, AEMBulk, logger, {
+                          baseUrl,
+                          pacingDelay,
+                          URLPatterns,
+                          retries: 2,
+                        });
+                        newUrlsCtr += 1;
+                      } else if (link.status === 'excluded') {
+                        await excelReport.addRow(link);
+                      }
+                    }
+                  });
+                  logger.info(`found ${newUrlsCtr.toString().padStart(3)} new url(s) (in ${result.url})`);
+                }
+
+                fs.writeFileSync('foundUrls.json', JSON.stringify(foundUrls, null, 2));
+
+                if (result.status !== 'retry') {
+                  await excelReport.addRow(found);
+                }
+
+                if (urlsFileStream) {
+                  urlsFileStream.write(`${found.url}\n`);
+                }
+              } else {
+                logger.error(`result not found for ${result.url}`);
+              }
+            });
+
+            for (const url of initialURLs) {
+              logger.debug(`crawl url ${url}`);
+              addURLToCrawl(url, queue, AEMBulk, logger, {
+                baseUrl,
+                pacingDelay,
+                URLPatterns,
+                retries: 2,
+              });
+            }
+
+            await new Promise((resolve) => {
+              queue.on('idle', () => {
+                logger.debug('handler - queue idle');
+                resolve();
+              });
+            });
+          } catch (e) {
+            logger.error('classic crawl error:');
+            logger.error(e);
           }
         }
+      } catch (e) {
+        logger.error('final crawl error:');
+        logger.error(e);
+      } finally {
+        logger.info(`found ${foundUrls.length} urls`);
+
+        await excelReport.write();
+
+        if (urlsFileStream) {
+          urlsFileStream.close((e) => {
+            if (e) {
+              logger.error(`closing file: ${e.stack}`);
+            }
+          });
+        }
+
+        logger.debug('handler - crawl done');
       }
-
-      logger.info(`found ${foundUrls.length} urls`);
-
-      foundUrls.forEach((fu) => logger.debug(JSON.stringify(fu)));
-
-      await excelReport.write();
-
-      if (urlsFileStream) {
-        urlsFileStream.close((e) => {
-          if (e) {
-            logger.error(`closing file: ${e.stack}`);
-          }
-        });
-      }
-
-      logger.debug('handler - crawl done');
     }),
   };
 }
