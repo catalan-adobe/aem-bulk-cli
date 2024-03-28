@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.8.0...v1.9.0) (2024-03-28)
+
+
+### Features
+
+* add importer command to analyse webpage template for a given list of urls ([#54](https://github.com/catalan-adobe/aem-bulk-cli/issues/54)) ([0f43bdc](https://github.com/catalan-adobe/aem-bulk-cli/commit/0f43bdc46d24f20c6deb761bc33530e32c0959e5))
+
 # [1.8.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.7.0...v1.8.0) (2024-03-20)
 
 
