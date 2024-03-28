@@ -19,6 +19,7 @@ export default function importer() {
     async builder(yargs) {
       return yargs
         .command([
+          (await import('./analyse.js')).default(),
           (await import('./cache-aem-importer.js')).default(),
           (await import('./cache-chrome.js')).default(),
           (await import('./check-urls.js')).default(),
