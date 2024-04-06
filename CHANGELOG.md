@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.0...v1.9.1) (2024-04-06)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([49e9518](https://github.com/catalan-adobe/aem-bulk-cli/commit/49e95180992df857b05cfdff74ed4b7247abfd8f))
+
 # [1.9.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.8.0...v1.9.0) (2024-03-28)
 
 
