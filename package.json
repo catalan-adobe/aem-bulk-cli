@@ -30,6 +30,6 @@
     "@semantic-release/npm": "11.0.3",
     "@types/yargs": "17.0.32",
     "eslint": "8.57.0",
-    "semantic-release": "23.0.7"
+    "semantic-release": "23.0.8"
   }
 }
