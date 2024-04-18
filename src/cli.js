@@ -12,7 +12,7 @@
 import readline from 'readline';
 import { getLogger } from './logger.js';
 
-export async function readLines(breaker = '') {
+export async function readLines(breaker = '', msg = '') {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -21,7 +21,13 @@ export async function readLines(breaker = '') {
   const lines = [];
 
   /* eslint-disable-next-line no-console */
-  console.log('Enter a list of URLs (urls pattern: "https://<branch>--<repo>--<owner>.hlx.page/<path>"). Enter an empty line to proceed:\n');
+  console.log('Enter a list of URLs (one per line)');
+  if (msg) {
+    /* eslint-disable-next-line no-console */
+    console.log(msg);
+  }
+  /* eslint-disable-next-line no-console */
+  console.log(`(enter ${breaker === '' ? 'an empty line' : `a "${breaker}" character`} to proceed):`);
 
   /* eslint-disable-next-line no-restricted-syntax */
   for await (const input of rl) {

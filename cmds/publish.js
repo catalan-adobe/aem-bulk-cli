@@ -25,7 +25,7 @@ import { buildAPIURL } from '../src/aem.js';
 export default function publishCmd() {
   return {
     command: 'publish',
-    describe: 'Publish pages to AEM Edge Delivery (URLs should be of type "https://<branch>--<repo>--<owner>.hlx.page/<path>")',
+    describe: 'Publish pages to AEM Edge Delivery (URLs must be of type "https://<branch>--<repo>--<owner>.hlx.page/<path>")',
     builder: (yargs) => {
       withCustomCLIParameters(yargs, { inputs: true, workers: true })
         .option('excel-report', {
@@ -57,7 +57,7 @@ export default function publishCmd() {
         // parse URLs
         let urls = [];
         if (argv.interactive) {
-          urls = await readLines(argv.listBreaker);
+          urls = await readLines(argv.listBreaker, '(URLs must be of type "https://<branch>--<repo>--<owner>.hlx.page/<path>")');
         } else if (argv.file) {
           // Read the list of URLs from the file
           urls = fs.readFileSync(argv.file, 'utf-8').split('\n').filter(Boolean);
