@@ -126,6 +126,11 @@ export default function lighthouseCmd() {
           default: 'google',
           type: 'string',
         })
+        .option('lh-google-api-key', {
+          alias: 'lhGoogleApiKey',
+          describe: 'API key for Google PSI check',
+          type: 'string',
+        })
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for analysed URLs',
@@ -138,15 +143,15 @@ export default function lighthouseCmd() {
           default: 'lh-reports',
           type: 'string',
         })
-        .epilog(`(Google PSI requires a valid API key in the ${GOOGLE_API_ENV_KEY} environment variable)`);
+        .epilog(`(You can also set the Google PSI Check API key in the ${GOOGLE_API_ENV_KEY} environment variable)`);
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger, AEMBulk,
     }) => {
       let { workers } = argv;
       // google api key required
-      const lhGoolgeAPIKey = process.env[GOOGLE_API_ENV_KEY];
-      if (argv.psiType === 'google' && !lhGoolgeAPIKey) {
+      const lhGoogleAPIKey = process.env[GOOGLE_API_ENV_KEY];
+      if (argv.psiType === 'google' && !lhGoogleAPIKey) {
         throw new Error(`Google PSI requires a valid API key in the ${GOOGLE_API_ENV_KEY} environment variable`);
       }
 
@@ -230,7 +235,7 @@ export default function lighthouseCmd() {
 
         // add items to queue
         for (const url of urls) {
-          addURLToAnalyse(argv.psiType, queue, url, logger, lhGoolgeAPIKey, AEMBulk);
+          addURLToAnalyse(argv.psiType, queue, url, logger, lhGoogleAPIKey, AEMBulk);
         }
 
         await donePromise;
