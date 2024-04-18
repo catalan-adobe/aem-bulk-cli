@@ -1,3 +1,10 @@
+## [1.9.3](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.2...v1.9.3) (2024-04-18)
+
+
+### Bug Fixes
+
+* detection library path ([439f34c](https://github.com/catalan-adobe/aem-bulk-cli/commit/439f34cb2b6d05a94c808ed8254b30d001599b1e))
+
 ## [1.9.2](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.1...v1.9.2) (2024-04-18)
 
 
