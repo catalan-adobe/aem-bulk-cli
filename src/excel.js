@@ -44,7 +44,7 @@ export class ExcelWriter {
     await this.workbook.xlsx.writeFile(this.filename);
   }
 
-  async addRow(data) {
+  async addRow(data, write = true) {
     let row = data;
 
     if (this.formatRowFn) {
@@ -54,7 +54,7 @@ export class ExcelWriter {
     this.worksheet.addRow(row);
 
     this.addedRowsCtr += 1;
-    if (this.addedRowsCtr > this.writeEvery) {
+    if (write || this.addedRowsCtr > this.writeEvery) {
       this.addedRowsCtr = 0;
       await this.workbook.xlsx.writeFile(this.filename);
     }
