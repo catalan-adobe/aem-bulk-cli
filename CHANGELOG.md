@@ -1,3 +1,12 @@
+## [1.9.2](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.1...v1.9.2) (2024-04-18)
+
+
+### Bug Fixes
+
+* improve help messages on URL input ([cf22b8b](https://github.com/catalan-adobe/aem-bulk-cli/commit/cf22b8bd18d37f974276057c499266a2a3d2bb08))
+* lighthouse command issue with google psi check api key ([0006a95](https://github.com/catalan-adobe/aem-bulk-cli/commit/0006a95e95f3d76251ee777b8e6ea62d43831f96))
+* loading detection library ([f7902fc](https://github.com/catalan-adobe/aem-bulk-cli/commit/f7902fc4f77199bdcaf71eae4713046aa74b8edf))
+
 ## [1.9.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.0...v1.9.1) (2024-04-06)
 
 
