@@ -1,3 +1,10 @@
+## [1.9.4](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.3...v1.9.4) (2024-04-18)
+
+
+### Bug Fixes
+
+* enforce writing excel file after each row addition ([821abda](https://github.com/catalan-adobe/aem-bulk-cli/commit/821abda34308d36235438bd4e3f60a2d245081cf))
+
 ## [1.9.3](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.2...v1.9.3) (2024-04-18)
 
 
