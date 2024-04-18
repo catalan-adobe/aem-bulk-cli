@@ -1,6 +1,6 @@
 {
   "name": "aem-bulk",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "CLI for AEM Edge Delivery bulk operations ",
   "type": "module",
   "bin": "./index.js",
@@ -15,7 +15,7 @@
     "exceljs": "4.4.0",
     "fastq": "^1.17.1",
     "find-free-port": "2.0.0",
-    "franklin-bulk-shared": "1.17.0",
+    "franklin-bulk-shared": "1.17.1",
     "matcher": "^5.0.0",
     "p-queue": "8.0.1",
     "urlpattern-polyfill": "10.0.0",
@@ -30,6 +30,6 @@
     "@semantic-release/npm": "11.0.3",
     "@types/yargs": "17.0.32",
     "eslint": "8.57.0",
-    "semantic-release": "23.0.6"
+    "semantic-release": "23.0.8"
   }
 }
