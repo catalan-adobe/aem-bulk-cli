@@ -15,7 +15,7 @@ import * as fastq from 'fastq';
 import { ExcelWriter } from '../../src/excel.js';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
 
-const DETECT_LIB = 'vendors/detect.no-ui.min.js';
+const DETECT_LIB = path.join(import.meta.dirname, '../../vendors/detect.no-ui.min.js');
 const SCREENSHOTS_FOLDER = 'screenshots';
 const RETRIES = 2;
 
