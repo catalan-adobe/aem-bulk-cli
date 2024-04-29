@@ -24,6 +24,7 @@ export default function importer() {
           (await import('./cache-chrome.js')).default(),
           (await import('./check-urls.js')).default(),
           (await import('./crawl.js')).default(),
+          (await import('./import.js')).default(),
         ])
         .demandCommand(1, '')
         .help();

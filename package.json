@@ -12,12 +12,16 @@
   "author": "catalan@adobe.com",
   "license": "Apache-2.0",
   "dependencies": {
+    "@adobe/helix-importer-ui": "git://github.com/adobe/helix-importer-ui.git",
+    "cors": "^2.8.5",
     "exceljs": "4.4.0",
+    "express": "^4.19.2",
     "fastq": "^1.17.1",
     "find-free-port": "2.0.0",
     "franklin-bulk-shared": "1.17.1",
     "matcher": "^5.0.0",
     "p-queue": "8.0.1",
+    "serve-static": "^1.15.0",
     "urlpattern-polyfill": "10.0.0",
     "winston": "3.13.0",
     "yargs": "17.7.2"
