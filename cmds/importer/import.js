@@ -39,9 +39,7 @@ async function importWorker({
         pacingDelay,
       },
     } = this;
-    const uuid = crypto.randomUUID();
 
-    const userDataDir = path.join(process.cwd(), `.chrome-user-data-${uuid}`);
     let browser;
     let page;
 
@@ -60,8 +58,6 @@ async function importWorker({
       [browser, page] = await AEMBulk.Puppeteer.initBrowser({
         port: 0,
         headless: true,
-        useLocalChrome: true,
-        userDataDir,
         disableJS: false,
         adBlocker: true,
         gdprBlocker: true,
@@ -144,8 +140,6 @@ async function importWorker({
     if (browser) {
       await browser.close();
     }
-
-    fs.rmSync(userDataDir, { recursive: true, force: true });
 
     resolve(importResult);
   });
