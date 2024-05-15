@@ -64,6 +64,9 @@ async function importWorker({
         extraArgs: ['--disable-features=site-per-process,IsolateOrigins,sitePerProcess'],
       });
 
+      // force bypass CSP
+      await page.setBypassCSP(true);
+
       const resp = await page.goto(url, { waitUntil: 'networkidle2' });
 
       // compute status
