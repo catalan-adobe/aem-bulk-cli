@@ -74,6 +74,7 @@ async function importWorker({
       AEMBulk,
       options: {
         pacingDelay,
+        disableJs,
       },
     } = this;
 
@@ -94,16 +95,18 @@ async function importWorker({
 
       [browser, page] = await AEMBulk.Puppeteer.initBrowser({
         port: 0,
-        headless: true,
-        disableJS: false,
+        headless: false,
         adBlocker: true,
         gdprBlocker: true,
-        extraArgs: ['--disable-features=site-per-process,IsolateOrigins,sitePerProcess'],
+        disableJS: false,
         devTools: false,
+        extraArgs: ['--disable-features=site-per-process,IsolateOrigins,sitePerProcess'],
       });
 
       // disable JS
-      await disableJS(page);
+      if (disableJs) {
+        await disableJS(page);
+      }
 
       // force bypass CSP
       await page.setBypassCSP(true);
@@ -209,13 +212,19 @@ export default function importCmd() {
           type: 'number',
           default: 250,
         })
+        .option('disable-js', {
+          alias: 'disableJs',
+          describe: 'Disable JavaScript execution in the browser',
+          type: 'boolean',
+          default: true,
+        })
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for processed URLs',
           default: 'import-report.xlsx',
           type: 'string',
         })
-        .group(['pacing-delay', 'excel-report'], 'Import Options:')
+        .group(['disable-js', 'pacing-delay', 'excel-report'], 'Import Options:')
 
         .help();
     },
@@ -261,6 +270,7 @@ export default function importCmd() {
           AEMBulk,
           options: {
             pacingDelay: argv.pacingDelay,
+            disableJs: argv.disableJs,
           },
         },
         importWorker,
