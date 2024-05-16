@@ -14,11 +14,37 @@ import path from 'path';
 import * as fastq from 'fastq';
 import { ExcelWriter } from '../../src/excel.js';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
+import { RequestInterceptionManager } from 'puppeteer-intercept-and-modify-requests'
 import serveStatic from 'serve-static';
 import express from 'express';
 import cors from 'cors';
 
 const RETRIES = 1;
+
+async function disableJS(page) {
+  const client = await page.target().createCDPSession()
+  const interceptManager = new RequestInterceptionManager(client)
+  await interceptManager.intercept(
+    {
+      // specify the URL pattern to intercept:
+      urlPattern: '*',
+      // optionally filter by resource type:
+      resourceType: 'Document',
+      // specify how you want to modify the response (may be async):
+      modifyResponse({ body }) {
+        if (!body) {
+          return;
+        }
+        const regex = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gm;
+        const subst = '';
+        const result = body.replace(regex, subst);
+        return {
+          body: result,
+        }
+      },
+    },
+  );
+}
 
 /**
  * worker
@@ -63,6 +89,9 @@ async function importWorker({
         gdprBlocker: true,
         extraArgs: ['--disable-features=site-per-process,IsolateOrigins,sitePerProcess'],
       });
+
+      // disable JS
+      await disableJS(page);
 
       // force bypass CSP
       await page.setBypassCSP(true);
