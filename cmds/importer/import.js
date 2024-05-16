@@ -12,14 +12,27 @@
 import fs from 'fs';
 import path from 'path';
 import * as fastq from 'fastq';
-import { ExcelWriter } from '../../src/excel.js';
-import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
 import { RequestInterceptionManager } from 'puppeteer-intercept-and-modify-requests'
 import serveStatic from 'serve-static';
 import express from 'express';
 import cors from 'cors';
+import { ExcelWriter } from '../../src/excel.js';
+import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
 
 const RETRIES = 1;
+const DEFAULT_IMPORT_SCRIPT_URL = 'http://localhost:8888/defaults/import-script.js';
+
+/**
+ * functions
+ */
+
+async function startHTTPServer() {
+  const app = express();
+  app.use(cors());
+  app.use(serveStatic(path.join(import.meta.dirname, '../../src/importer')));
+  app.use(serveStatic(path.join(import.meta.dirname, '../../node_modules/@adobe/helix-importer-ui/')));
+  return app.listen(8888);
+}
 
 async function disableJS(page) {
   const client = await page.target().createCDPSession()
@@ -88,6 +101,7 @@ async function importWorker({
         adBlocker: true,
         gdprBlocker: true,
         extraArgs: ['--disable-features=site-per-process,IsolateOrigins,sitePerProcess'],
+        devTools: false,
       });
 
       // disable JS
@@ -119,13 +133,15 @@ async function importWorker({
           eventsEnabled: true,
         });
 
-        const filename = await page.evaluate(async () => {
+        const filename = await page.evaluate(async (importScriptURL) => {
           /* eslint-disable */
           // code executed in the browser context
           await import('http://localhost:8888/js/dist/helix-importer.js');
-
+          
+          const customTransformConfig = await import(importScriptURL);
+          
           // execute default import script
-          const out = await WebImporter.html2docx(location.href, document, null, {});
+          const out = await WebImporter.html2docx(location.href, document, customTransformConfig.default, {});
 
           // get the docx file
           const blob = new Blob([out.docx], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
@@ -142,7 +158,7 @@ async function importWorker({
           // return the filename
           return out.path;
           /* eslint-enable */
-        });
+        }, DEFAULT_IMPORT_SCRIPT_URL);
 
         logger.debug(`imported page saved to docx file ${docxPath}${filename}.docx`);
 
@@ -175,13 +191,6 @@ async function importWorker({
 
     resolve(importResult);
   });
-}
-
-async function startHTTPServer() {
-  const app = express();
-  app.use(cors());
-  app.use(serveStatic(path.join(import.meta.dirname, '../../node_modules/@adobe/helix-importer-ui/')));
-  return app.listen(8888);
 }
 
 /**
