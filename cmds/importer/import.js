@@ -12,7 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import * as fastq from 'fastq';
-import { RequestInterceptionManager } from 'puppeteer-intercept-and-modify-requests'
+import { RequestInterceptionManager } from 'puppeteer-intercept-and-modify-requests';
 import serveStatic from 'serve-static';
 import express from 'express';
 import cors from 'cors';
@@ -35,8 +35,8 @@ async function startHTTPServer() {
 }
 
 async function disableJS(page) {
-  const client = await page.target().createCDPSession()
-  const interceptManager = new RequestInterceptionManager(client)
+  const client = await page.target().createCDPSession();
+  const interceptManager = new RequestInterceptionManager(client);
   await interceptManager.intercept(
     {
       // specify the URL pattern to intercept:
@@ -45,15 +45,13 @@ async function disableJS(page) {
       resourceType: 'Document',
       // specify how you want to modify the response (may be async):
       modifyResponse({ body }) {
-        if (!body) {
-          return;
+        if (body) {
+          const regex = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gm;
+          const subst = '';
+          const result = body.replace(regex, subst);
+          return { body: result };
         }
-        const regex = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gm;
-        const subst = '';
-        const result = body.replace(regex, subst);
-        return {
-          body: result,
-        }
+        return { body };
       },
     },
   );
@@ -163,7 +161,7 @@ async function importWorker({
         logger.debug(`imported page saved to docx file ${docxPath}${filename}.docx`);
 
         // wait for download to complete
-        const dlState = await new Promise(async (res) => {
+        const dlPromise = new Promise((res) => {
           client.on('Browser.downloadProgress', async ({
             // guid,
             // totalBytes,
@@ -175,6 +173,8 @@ async function importWorker({
             }
           });
         });
+        const dlState = await Promise.resolve(dlPromise);
+
         logger.debug(`download state: ${dlState}`);
 
         importResult.docxFilename = `${docxPath}${filename}.docx`;
