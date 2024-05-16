@@ -276,7 +276,7 @@ export default function importCmd() {
             await queue.resume();
           } else {
             logger.error(`giving up on ${result.url}`);
-            await excelReport.addRow(result);
+            await excelReport.addRow(result, true);
           }
         } else {
           // let tplName = '';
@@ -286,7 +286,7 @@ export default function importCmd() {
           }
 
           logger.info(`[${result.status.padEnd(8)}] import done for ${result.url} (${result.message})`);
-          await excelReport.addRow(result);
+          await excelReport.addRow(result, true);
         }
       };
 
