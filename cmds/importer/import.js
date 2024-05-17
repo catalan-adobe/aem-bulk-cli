@@ -95,7 +95,7 @@ async function importWorker({
 
       [browser, page] = await AEMBulk.Puppeteer.initBrowser({
         port: 0,
-        headless: false,
+        headless: true,
         adBlocker: true,
         gdprBlocker: true,
         disableJS: false,
