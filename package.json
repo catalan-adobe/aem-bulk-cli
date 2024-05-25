@@ -15,7 +15,7 @@
     "exceljs": "4.4.0",
     "fastq": "^1.17.1",
     "find-free-port": "2.0.0",
-    "franklin-bulk-shared": "1.17.1",
+    "franklin-bulk-shared": "1.19.0",
     "matcher": "^5.0.0",
     "p-queue": "8.0.1",
     "urlpattern-polyfill": "10.0.0",
