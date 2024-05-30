@@ -1,3 +1,10 @@
+## [1.9.5](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.4...v1.9.5) (2024-05-25)
+
+
+### Bug Fixes
+
+* **deps:** update dependency franklin-bulk-shared to v1.19.0 ([69ee4d6](https://github.com/catalan-adobe/aem-bulk-cli/commit/69ee4d669e61797f5c4f2d80cdad5316040e8a4a))
+
 ## [1.9.4](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.3...v1.9.4) (2024-04-18)
 
 
