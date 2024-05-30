@@ -35,5 +35,4 @@ jobs:
       - run: npm run semantic-release
         env:
           NPM_TOKEN: ${{ secrets.ADOBE_NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.ADOBE_GITHUB_TOKEN }}
 
