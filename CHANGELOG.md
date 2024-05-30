@@ -1,3 +1,15 @@
+# [1.10.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.5...v1.10.0) (2024-05-30)
+
+
+### Bug Fixes
+
+* remove explicit write options for excel addrow function ([0626828](https://github.com/catalan-adobe/aem-bulk-cli/commit/06268282400f7ecd29edac4d0a99105176315289))
+
+
+### Features
+
+* use crawl function from franklin-bulk-shared ([6d22025](https://github.com/catalan-adobe/aem-bulk-cli/commit/6d22025be14183beb8e11c5fd4b7d484048d890d))
+
 ## [1.9.5](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.4...v1.9.5) (2024-05-25)
 
 
