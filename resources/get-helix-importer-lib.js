@@ -10,25 +10,21 @@
  * governing permissions and limitations under the License.
  */
 
-export default function importer() {
-  return {
-    command: 'importer <command>',
+/**
+ * Fetches the helix-importer.js library from the helix-importer-ui repository.
+ */
 
-    describe: 'importer group',
+import fs from 'fs';
 
-    async builder(yargs) {
-      return yargs
-        .command([
-          (await import('./analyse.js')).default(),
-          (await import('./cache-aem-importer.js')).default(),
-          (await import('./cache-chrome.js')).default(),
-          (await import('./check-urls.js')).default(),
-          (await import('./crawl.js')).default(),
-          (await import('./import.js')).default(),
-        ])
-        .demandCommand(1, '')
-        .help();
-    },
+try {
+  const resp = await fetch('https://raw.githubusercontent.com/adobe/helix-importer-ui/main/js/dist/helix-importer.js');
 
-  };
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch helix-importer.js: ${resp.status} ${resp.statusText}`);
+  }
+
+  const text = await resp.text();
+  fs.writeFileSync('vendors/helix-importer.js', text);
+} catch (e) {
+  throw new Error('Failed to fetch helix-importer.js', e);
 }
