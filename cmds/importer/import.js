@@ -22,7 +22,6 @@ import sharp from 'sharp';
 import { ExcelWriter } from '../../src/excel.js';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
 
-const RETRIES = 1;
 const DEFAULT_IMPORT_SCRIPT_URL = 'http://localhost:8888/defaults/import-script.js';
 
 /**
@@ -226,13 +225,18 @@ export default function importCmd() {
           type: 'boolean',
           default: true,
         })
+        .option('retries', {
+          describe: 'Number of retried in case of import error',
+          type: 'number',
+          default: 1,
+        })
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for processed URLs',
           default: 'import-report.xlsx',
           type: 'string',
         })
-        .group(['disable-js', 'pacing-delay', 'excel-report'], 'Import Options:')
+        .group(['disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
         .help();
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
@@ -319,7 +323,7 @@ export default function importCmd() {
       try {
         // add items to queue
         for (const url of urls) {
-          queue.push({ url, retries: RETRIES, logger }).then(queueResultHandler);
+          queue.push({ url, retries: argv.retries, logger }).then(queueResultHandler);
         }
 
         logger.debug('queue - all items added, start processing');
