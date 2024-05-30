@@ -1,3 +1,37 @@
+## [1.10.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.10.0...v1.10.1) (2024-05-30)
+
+
+### Bug Fixes
+
+* linting flow ([153d76f](https://github.com/catalan-adobe/aem-bulk-cli/commit/153d76f5705df40f658b16ee50c19e66e3d5dc87))
+* release ci flow ([7381e35](https://github.com/catalan-adobe/aem-bulk-cli/commit/7381e35e260c262723b4d3242003e0e1c2be8da2))
+* release ci flow ([b23c8bc](https://github.com/catalan-adobe/aem-bulk-cli/commit/b23c8bc68df52769cdfffdb573768f2e7ea1571b))
+* release ci flow ([9be00fb](https://github.com/catalan-adobe/aem-bulk-cli/commit/9be00fbe605a5e5f6f1d2bb1e88c93a7d24238a5))
+* release ci flow ([0280f7d](https://github.com/catalan-adobe/aem-bulk-cli/commit/0280f7d06c03d8a604adebf75c59a2061ecc4c72))
+* release ci flow ([f6a1435](https://github.com/catalan-adobe/aem-bulk-cli/commit/f6a143583fc6ad6d770e6d478200a1590f448abc))
+* release ci flow ([57eed35](https://github.com/catalan-adobe/aem-bulk-cli/commit/57eed353dc0217e333e3ec5685c5909d7a879647))
+* release ci flow ([#64](https://github.com/catalan-adobe/aem-bulk-cli/issues/64)) ([a936acb](https://github.com/catalan-adobe/aem-bulk-cli/commit/a936acb6670d030b0e29d3d630ee9de58a76e129))
+* release flow ([b48028f](https://github.com/catalan-adobe/aem-bulk-cli/commit/b48028fd6c64fab530b455015ef945dcd04f3309))
+
+# [1.10.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.5...v1.10.0) (2024-05-30)
+
+
+### Bug Fixes
+
+* remove explicit write options for excel addrow function ([0626828](https://github.com/catalan-adobe/aem-bulk-cli/commit/06268282400f7ecd29edac4d0a99105176315289))
+
+
+### Features
+
+* use crawl function from franklin-bulk-shared ([6d22025](https://github.com/catalan-adobe/aem-bulk-cli/commit/6d22025be14183beb8e11c5fd4b7d484048d890d))
+
+## [1.9.5](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.4...v1.9.5) (2024-05-25)
+
+
+### Bug Fixes
+
+* **deps:** update dependency franklin-bulk-shared to v1.19.0 ([69ee4d6](https://github.com/catalan-adobe/aem-bulk-cli/commit/69ee4d669e61797f5c4f2d80cdad5316040e8a4a))
+
 ## [1.9.4](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.9.3...v1.9.4) (2024-04-18)
 
 
