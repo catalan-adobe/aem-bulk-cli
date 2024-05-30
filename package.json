@@ -7,12 +7,12 @@
   "scripts": {
     "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release",
+    "postinstall": "node resources/get-helix-importer-lib.js"
   },
   "author": "catalan@adobe.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "@adobe/helix-importer-ui": "git://github.com/adobe/helix-importer-ui.git",
     "@adobe/helix-md2docx": "2.1.56",
     "cors": "^2.8.5",
     "exceljs": "4.4.0",
