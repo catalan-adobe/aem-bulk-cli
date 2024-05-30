@@ -9,13 +9,16 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+import { md2docx } from '@adobe/helix-md2docx';
+import { RequestInterceptionManager } from 'puppeteer-intercept-and-modify-requests';
+import * as fastq from 'fastq';
+import cors from 'cors';
+import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import * as fastq from 'fastq';
-import { RequestInterceptionManager } from 'puppeteer-intercept-and-modify-requests';
 import serveStatic from 'serve-static';
-import express from 'express';
-import cors from 'cors';
+import sharp from 'sharp';
+
 import { ExcelWriter } from '../../src/excel.js';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
 
@@ -30,7 +33,6 @@ async function startHTTPServer() {
   const app = express();
   app.use(cors());
   app.use(serveStatic(path.join(import.meta.dirname, '../../src/importer')));
-  app.use(serveStatic(path.join(import.meta.dirname, '../../node_modules/@adobe/helix-importer-ui/')));
   return app.listen(8888);
 }
 
@@ -55,6 +57,23 @@ async function disableJS(page) {
       },
     },
   );
+}
+
+async function image2png({ src, data }) {
+  try {
+    const png = (await sharp(data)).png();
+    const metadata = await png.metadata();
+    return {
+      data: png.toBuffer(),
+      width: metadata.width,
+      height: metadata.height,
+      type: 'image/png',
+    };
+  } catch (e) {
+    /* eslint-disable no-console */
+    console.error(`Cannot convert image ${src} to png. It might corrupt the Word document and you should probably remove it from the DOM.`);
+    return null;
+  }
 }
 
 /**
@@ -125,66 +144,55 @@ async function importWorker({
         importResult.message = `redirected to ${resp.url()}`;
       } else {
         // ok -> import
-        const u = new URL(url);
-        const docxPath = path.join('docx', path.dirname(u.pathname));
-        const client = await page.target().createCDPSession();
-        await client.send('Browser.setDownloadBehavior', {
-          behavior: 'allow',
-          downloadPath: path.join(process.cwd(), docxPath),
-          eventsEnabled: true,
-        });
 
-        const filename = await page.evaluate(async (importScriptURL) => {
+        // force scroll
+        if (!disableJs) {
+          await AEMBulk.Puppeteer.smartScroll(page, { postReset: true });
+        }
+
+        const urlDetails = AEMBulk.Url.extractDetailsFromUrl(url);
+        const docxPath = path.join('docx', urlDetails.host, urlDetails.path);
+        if (!fs.existsSync(docxPath)) {
+          fs.mkdirSync(docxPath, { recursive: true });
+        }
+
+        // inject helix-import library script
+        // will provice WebImporter.html2docx function in browser context
+        const js = fs.readFileSync(path.join(import.meta.dirname, '../../node_modules/@adobe/helix-importer-ui/js/dist/helix-importer.js'), 'utf-8');
+        await page.evaluate(js);
+
+        const md = await page.evaluate(async (importScriptURL) => {
           /* eslint-disable */
           // code executed in the browser context
-          await import('http://localhost:8888/js/dist/helix-importer.js');
-          
+
+          // import the custom transform config          
           const customTransformConfig = await import(importScriptURL);
           
           // execute default import script
-          const out = await WebImporter.html2docx(location.href, document, customTransformConfig.default, {});
+          const out = await WebImporter.html2docx(location.href, document, customTransformConfig.default, { toDocx: false, toMd: true });
 
-          // get the docx file
-          const blob = new Blob([out.docx], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-          const url = window.URL.createObjectURL(blob);
-
-          // download the docx file
-          const filename = `${out.path.substring(out.path.lastIndexOf('/') + 1)}.docx`;
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', filename);
-          document.body.appendChild(link);
-          link.click();
-
-          // return the filename
-          return out.path;
+          // return the md content
+          return out.md;
           /* eslint-enable */
         }, DEFAULT_IMPORT_SCRIPT_URL);
 
-        logger.debug(`imported page saved to docx file ${docxPath}${filename}.docx`);
-
-        // wait for download to complete
-        const dlPromise = new Promise((res) => {
-          client.on('Browser.downloadProgress', async ({
-            // guid,
-            // totalBytes,
-            // receivedBytes,
-            state,
-          }) => {
-            if (state !== 'inProgress') {
-              res(state);
-            }
-          });
+        // convert markdown to docx
+        const docx = await md2docx(md, {
+          docxStylesXML: null,
+          image2png,
         });
-        const dlState = await Promise.resolve(dlPromise);
 
-        logger.debug(`download state: ${dlState}`);
+        // save docx file
+        fs.writeFileSync(path.join(process.cwd(), docxPath, `${urlDetails.filename}.docx`), docx);
 
-        importResult.docxFilename = `${docxPath}${filename}.docx`;
+        logger.debug(`imported page saved to docx file ${docxPath}/${urlDetails.filename}.docx`);
+
+        importResult.docxFilename = `${docxPath}${urlDetails.filename}.docx`;
       }
     } catch (e) {
       importResult.status = 'error';
       importResult.message = e.message;
+      console.error(e);
     }
 
     // close browser
@@ -225,7 +233,6 @@ export default function importCmd() {
           type: 'string',
         })
         .group(['disable-js', 'pacing-delay', 'excel-report'], 'Import Options:')
-
         .help();
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
