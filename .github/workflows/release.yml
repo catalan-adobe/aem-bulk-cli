@@ -34,5 +34,6 @@ jobs:
       - run: npm ci
       - run: npm run semantic-release
         env:
+          MY_SECRET_TOKEN: ${{ secrets.MY_SECRET }}
           GITHUB_TOKEN: ${{ secrets.ADOBE_GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.ADOBE_NPM_TOKEN }}
