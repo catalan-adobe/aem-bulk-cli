@@ -37,7 +37,8 @@
         "^.+"
       ],
       "excludePackagePatterns": [
-        "^@adobe/"
+        "^@adobe/",
+        "eslint"
       ],
       "schedule": [
         "after 2pm on Monday"
