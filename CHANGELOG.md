@@ -1,3 +1,12 @@
+## [1.10.2](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.10.1...v1.10.2) (2024-06-01)
+
+
+### Bug Fixes
+
+* **deps:** update dependency franklin-bulk-shared to v1.20.0 ([490f9ad](https://github.com/catalan-adobe/aem-bulk-cli/commit/490f9ad30657aaf09302900426a7f308da672127))
+* release ci flow ([647cd44](https://github.com/catalan-adobe/aem-bulk-cli/commit/647cd44ca7209dc584c66e68d0a67a83112454d8))
+* renovate configuration file ([74ae1b9](https://github.com/catalan-adobe/aem-bulk-cli/commit/74ae1b9796075ea8c6d54898947d6adb65af3465))
+
 ## [1.10.2](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.10.1...v1.10.2) (2024-05-30)
 
 
