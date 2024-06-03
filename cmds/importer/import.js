@@ -185,7 +185,7 @@ async function importWorker({
         }
 
         const urlDetails = AEMBulk.FS.computeFSDetailsFromUrl(url);
-        const docxPath = path.join('docx', urlDetails.hostname, urlDetails.path);
+        const docxPath = path.join('docx', urlDetails.path);
         if (!fs.existsSync(docxPath)) {
           fs.mkdirSync(docxPath, { recursive: true });
         }
