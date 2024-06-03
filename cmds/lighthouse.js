@@ -25,7 +25,8 @@ const LH_AUDIT_KEYS = ['speed-index', 'first-contentful-paint', 'largest-content
  * functions
  */
 
-async function runLighthouse(url, type, apiKey, AEMBulk) {
+async function runLighthouse(url, type, pacingDelay, apiKey, AEMBulk) {
+  await AEMBulk.Time.sleep(pacingDelay);
   const execId = randomUUID();
   const startTime = Date.now();
 
@@ -95,11 +96,11 @@ async function runLighthouse(url, type, apiKey, AEMBulk) {
   }
 }
 
-async function addURLToAnalyse(type, queue, url, logger, apiKey, AEMBulk) {
+async function addURLToAnalyse(type, pacingDelay, queue, url, logger, apiKey, AEMBulk) {
   try {
     await queue.add(async () => {
       try {
-        return await runLighthouse(url, type, apiKey, AEMBulk);
+        return await runLighthouse(url, type, pacingDelay, apiKey, AEMBulk);
       } catch (e) {
         logger.error(`caching ${url.transformed}: ${e.stack})`);
         return { url: url.original, status: e.message };
@@ -131,6 +132,13 @@ export default function lighthouseCmd() {
           describe: 'API key for Google PSI check',
           type: 'string',
         })
+        .option('pacing-delay', {
+          alias: 'pacingDelay',
+          describe: 'Delay in milliseconds between each lighthouse analysis',
+          type: 'number',
+          default: 250,
+        })
+        .group(['psiType', 'lhGoogleApiKey', 'pacingDelay'], 'Lighthouse Analysis Options:')
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for analysed URLs',
@@ -215,7 +223,12 @@ export default function lighthouseCmd() {
         // triggered each time a job is completed
         queue.on('completed', async (result) => {
           try {
-            logger.info(`analysis done for ${result.url} (duration: ${result.duration}ms.) id: ${result.execId})`);
+            const { report } = result;
+            const { audits } = report.lighthouseResult;
+            const summaryAuditKeys = ['SI', 'FCP', 'LCP', 'TBT', 'CLS'];
+            const summary = LH_AUDIT_KEYS.map((k, i) => (`${summaryAuditKeys[i]}: ${('numericValue' in audits[k]) ? Math.round(audits[k].numericValue * 1000) / 1000 : 'N/A'}`)).join(' | ');
+
+            logger.info(`analysis done for ${result.url}: ${summary} (duration: ${result.duration}ms.) id: ${result.execId})`);
             // write result to file
             fs.writeFileSync(path.join(argv.reportsFolder, `${result.execId}.json`), JSON.stringify(result.report, null, 2));
             // add row to excel report
@@ -235,7 +248,15 @@ export default function lighthouseCmd() {
 
         // add items to queue
         for (const url of urls) {
-          addURLToAnalyse(argv.psiType, queue, url, logger, lhGoogleAPIKey, AEMBulk);
+          addURLToAnalyse(
+            argv.psiType,
+            argv.pacingDelay,
+            queue,
+            url,
+            logger,
+            lhGoogleAPIKey,
+            AEMBulk,
+          );
         }
 
         await donePromise;
