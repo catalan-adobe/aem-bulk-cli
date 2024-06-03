@@ -134,19 +134,19 @@ export default function crawlCmd() {
           exclusionPatterns: argv.exclusionFilter || [],
           sameDomain: false,
           keepHash: false,
+          urlStreamFn: async (newUrls) => {
+            if (newUrls.length > 0) {
+              await excelReport.addRows(newUrls);
+            }
+          },
         },
       );
 
+      // write/close excel report
+      await excelReport.close();
+
       fs.writeFileSync('result.json', JSON.stringify(result, null, 2));
       fs.writeFileSync(textFile, result.urls.filter((u) => u.status === 'valid').map((u) => u.url).join('\n'));
-
-      for (let i = 0; i < result.urls.length; i += 1) {
-        const u = result.urls[i];
-        /* eslint-disable no-await-in-loop */
-        await excelReport.addRow(u);
-      }
-
-      await excelReport.write();
 
       logger.info(`Crawl completed. Found ${result.urls.length} URLs. Valid URLs saved to ${textFile}`);
     }),

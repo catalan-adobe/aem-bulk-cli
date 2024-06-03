@@ -9,9 +9,12 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+import fs from 'fs';
 import ExcelJS from 'exceljs';
 
 export class ExcelWriter {
+  #writer;
+
   constructor(options = {
     filename: 'report.xlsx',
     sheetName: 'report',
@@ -25,23 +28,39 @@ export class ExcelWriter {
     this.writeEvery = options.writeEvery || 1000;
 
     // init excel workbook
-    this.workbook = new ExcelJS.Workbook();
+    this.#writer = fs.createWriteStream(this.filename);
+    this.workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: this.#writer,
+    });
     this.worksheet = this.workbook.addWorksheet(options.sheetName);
-
     // create Excel auto Filters for the first row / header
     this.worksheet.autoFilter = {
       from: 'A1',
       to: `${String.fromCharCode(65 + this.headers.length - 1)}1`,
     };
-
     // set headers
-    this.worksheet.addRows([this.headers]);
-
-    this.addedRowsCtr = 0;
+    this.worksheet.addRow(this.headers);
   }
 
   async write() {
-    await this.workbook.xlsx.writeFile(this.filename);
+    await this.workbook.xlsx.write(this.#writer);
+  }
+
+  async close() {
+    await this.workbook.commit();
+  }
+
+  async addRows(data) {
+    let rows = data;
+
+    if (this.formatRowFn) {
+      rows = data.map(this.formatRowFn);
+    }
+
+    for (let i = 0; i < rows.length; i += this.writeEvery) {
+      const r = rows[i];
+      this.worksheet.addRow(r).commit();
+    }
   }
 
   async addRow(data) {
@@ -51,12 +70,6 @@ export class ExcelWriter {
       row = this.formatRowFn(data);
     }
 
-    this.worksheet.addRow(row);
-
-    this.addedRowsCtr += 1;
-    if (this.addedRowsCtr > this.writeEvery) {
-      this.addedRowsCtr = 0;
-      await this.workbook.xlsx.writeFile(this.filename);
-    }
+    this.worksheet.addRow(row).commit();
   }
 }

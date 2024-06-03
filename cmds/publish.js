@@ -171,7 +171,9 @@ export default function publishCmd() {
         logger.debug(`${argv.stage} main handler - finally`);
         if (excelReport) {
           logger.info('writing excel report');
-          await excelReport.write();
+
+          // write/close excel report
+          await excelReport.close();
         }
       }
     }),

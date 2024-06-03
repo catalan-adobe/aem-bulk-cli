@@ -149,8 +149,8 @@ async function importWorker({
           await AEMBulk.Puppeteer.smartScroll(page, { postReset: true });
         }
 
-        const urlDetails = AEMBulk.Url.extractDetailsFromUrl(url);
-        const docxPath = path.join('docx', urlDetails.host, urlDetails.path);
+        const urlDetails = AEMBulk.FS.computeFSDetailsFromUrl(url);
+        const docxPath = path.join('docx', urlDetails.hostname, urlDetails.path);
         if (!fs.existsSync(docxPath)) {
           fs.mkdirSync(docxPath, { recursive: true });
         }
@@ -335,6 +335,9 @@ export default function importCmd() {
       } catch (e) {
         logger.error(`main command thread: ${e.stack}`);
       }
+
+      // write/close excel report
+      await excelReport.close();
 
       // stop http server
       await httpServer.close();

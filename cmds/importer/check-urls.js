@@ -131,7 +131,9 @@ export default function CheckURLsCmd() {
         logger.debug('check-urls main handler - finally');
         if (excelReport) {
           logger.info('writing excel report');
-          await excelReport.write();
+
+          // write/close excel report
+          await excelReport.close();
         }
       }
     }),

@@ -173,12 +173,14 @@ export default function cacheAEMImporter({
         logger.debug(e);
       } finally {
         logger.debug('handler - finally');
+
+        // write/close excel report
+        await excelReport.close();
+
         if (browser) {
           browser.close();
         }
       }
-
-      await excelReport.write();
     }),
   };
 }

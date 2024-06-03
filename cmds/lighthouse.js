@@ -241,10 +241,12 @@ export default function lighthouseCmd() {
         await donePromise;
       } catch (e) {
         logger.error(`main command thread: ${e.stack}`);
-      } finally {
-        await excelReport.write();
-        logger.debug('handler - lighthouse done');
       }
+
+      // write/close excel report
+      await excelReport.close();
+
+      logger.debug('handler - lighthouse done');
     }),
   };
 }

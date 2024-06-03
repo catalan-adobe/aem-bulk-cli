@@ -290,6 +290,10 @@ export default function analyseCmd() {
       } catch (e) {
         logger.error(`main command thread: ${e.stack}`);
       }
+
+      // write/close excel report
+      await excelReport.close();
+
       logger.debug('handler - analyse done');
     }),
   };

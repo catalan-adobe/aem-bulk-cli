@@ -276,7 +276,9 @@ export default function screenshotCmd() {
       } catch (e) {
         logger.error(`main command thread: ${e.stack}`);
       } finally {
-        await excelReport.write();
+        // write/close excel report
+        await excelReport.close();
+
         logger.debug('handler - lighthouse done');
       }
     }),
