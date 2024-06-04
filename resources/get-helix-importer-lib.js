@@ -17,7 +17,7 @@
 import fs from 'fs';
 
 try {
-  const resp = await fetch('https://raw.githubusercontent.com/adobe/helix-importer-ui/v1.51.14/js/dist/helix-importer.js');
+  const resp = await fetch('https://raw.githubusercontent.com/adobe/helix-importer-ui/main/js/dist/helix-importer.js');
 
   if (!resp.ok) {
     throw new Error(`Failed to fetch helix-importer.js: ${resp.status} ${resp.statusText}`);
