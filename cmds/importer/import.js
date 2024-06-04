@@ -23,6 +23,7 @@ import { ExcelWriter } from '../../src/excel.js';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
 
 const DEFAULT_IMPORT_SCRIPT_URL = 'http://localhost:8888/defaults/import-script.js';
+const pageImages = [];
 
 /**
  * functions
@@ -60,7 +61,9 @@ async function disableJS(page) {
 
 async function image2png({ src, data }) {
   try {
-    const png = (await sharp(data)).png();
+    const found = pageImages.find((img) => img.url === src);
+    const imgData = found ? found.buffer : data;
+    const png = (await sharp(imgData)).png();
     const metadata = await png.metadata();
     return {
       data: png.toBuffer(),
@@ -93,6 +96,7 @@ async function importWorker({
       options: {
         pacingDelay,
         disableJs,
+        cookies,
       },
     } = this;
 
@@ -118,7 +122,7 @@ async function importWorker({
         gdprBlocker: true,
         disableJS: false,
         devTools: false,
-        extraArgs: ['--disable-features=site-per-process,IsolateOrigins,sitePerProcess'],
+        useLocalChrome: true,
       });
 
       // disable JS
@@ -128,6 +132,37 @@ async function importWorker({
 
       // force bypass CSP
       await page.setBypassCSP(true);
+
+      // intercept all images and store them as PNG in an array
+      await page.setRequestInterception(true);
+      page.on('requestfinished', async (req) => {
+        if (req.resourceType() === 'image') {
+          const response = await req.response();
+          const contentType = response.headers()['content-type'];
+          if (response && response.status() < 300 && contentType && contentType.startsWith('image')) {
+            const buffer = await response.buffer();
+            const type = response.headers()['content-type'];
+            const imgUrl = req.url();
+            logger.debug(`storing image ${imgUrl} - ${type} - ${buffer.length} bytes`);
+            pageImages.push({ url: imgUrl, buffer, type });
+          }
+        }
+      });
+
+      // cookies
+      if (cookies) {
+        const allCookies = cookies.split(';').map((c) => {
+          const [name, value] = c.split('=');
+          return {
+            name: name.trim(),
+            value: value.trim(),
+            domain: new URL(url).hostname,
+            path: '/',
+          };
+        });
+
+        await page.setCookie(...allCookies);
+      }
 
       const resp = await page.goto(url, { waitUntil: 'networkidle2' });
 
@@ -150,7 +185,7 @@ async function importWorker({
         }
 
         const urlDetails = AEMBulk.FS.computeFSDetailsFromUrl(url);
-        const docxPath = path.join('docx', urlDetails.hostname, urlDetails.path);
+        const docxPath = path.join('docx', urlDetails.path);
         if (!fs.existsSync(docxPath)) {
           fs.mkdirSync(docxPath, { recursive: true });
         }
@@ -179,6 +214,12 @@ async function importWorker({
         const docx = await md2docx(md, {
           docxStylesXML: null,
           image2png,
+          log: {
+            info: () => {},
+            warn: () => {},
+            error: () => {},
+            log: () => {},
+          },
         });
 
         // save docx file
@@ -191,6 +232,7 @@ async function importWorker({
     } catch (e) {
       importResult.status = 'error';
       importResult.message = e.message;
+      /* eslint-disable no-console */
       console.error(e);
     }
 
@@ -225,6 +267,12 @@ export default function importCmd() {
           type: 'boolean',
           default: true,
         })
+        .option('cookies', {
+          alias: 'cookies',
+          describe: 'cookie string to be used for the request',
+          type: 'string',
+          default: null,
+        })
         .option('retries', {
           describe: 'Number of retried in case of import error',
           type: 'number',
@@ -236,7 +284,7 @@ export default function importCmd() {
           default: 'import-report.xlsx',
           type: 'string',
         })
-        .group(['disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
+        .group(['cookies', 'disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
         .help();
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
@@ -282,6 +330,7 @@ export default function importCmd() {
           options: {
             pacingDelay: argv.pacingDelay,
             disableJs: argv.disableJs,
+            cookies: argv.cookies,
           },
         },
         importWorker,
