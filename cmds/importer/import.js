@@ -232,7 +232,8 @@ async function importWorker({
     } catch (e) {
       importResult.status = 'error';
       importResult.message = e.message;
-      logger.error(e);
+      /* eslint-disable no-console */
+      console.error(e);
     }
 
     // close browser
