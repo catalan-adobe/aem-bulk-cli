@@ -45,11 +45,16 @@ export default function crawlCmd() {
           type: 'number',
           default: 10,
         })
+        .option('http-header', {
+          alias: 'httpHeader',
+          describe: 'HTTP header to send with the robots.txt/sitemaps requests (example: "User-Agent: Mozilla/5.0")',
+          type: 'array',
+        })
         .option('limit', {
           describe: 'Limit max number of URLs to collect',
           type: 'number',
         })
-        .group(['origin', 'limit', 'inclusionFilter', 'exclusionFilter', 'timeout'], 'Crawl Options:')
+        .group(['origin', 'limit', 'inclusionFilter', 'exclusionFilter', 'timeout', 'httpHeader'], 'Crawl Options:')
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for the found URLs',
@@ -124,6 +129,16 @@ export default function crawlCmd() {
         }
       });
 
+      // parse headers from argv
+      let headers = null;
+      if (argv.httpHeaders) {
+        headers = {};
+        argv.httpHeaders.forEach((h) => {
+          const [key, value] = h.split(':');
+          headers[key] = value;
+        });
+      }
+
       const result = await AEMBulk.Web.crawl(
         origin,
         {
@@ -133,6 +148,7 @@ export default function crawlCmd() {
           inclusionPatterns: argv.inclusionFilter || [],
           exclusionPatterns: argv.exclusionFilter || [],
           sameDomain: false,
+          httpHeaders: headers,
           keepHash: false,
           urlStreamFn: async (newUrls) => {
             if (newUrls.length > 0) {
