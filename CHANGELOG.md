@@ -1,3 +1,10 @@
+## [1.12.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.12.0...v1.12.1) (2024-06-04)
+
+
+### Bug Fixes
+
+* fix handling of custom headers in crawl and import commands ([30eaef3](https://github.com/catalan-adobe/aem-bulk-cli/commit/30eaef364539f3c4907dcfe873dc6c296909aa0d))
+
 # [1.12.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.11.0...v1.12.0) (2024-06-04)
 
 
