@@ -59,7 +59,7 @@ async function disableJS(page) {
   );
 }
 
-async function image2png({ src, data, type }) {
+async function image2png({ src, data }) {
   try {
     const found = pageImages.find((img) => img.url === src);
     const imgData = found ? found.buffer : data;
@@ -232,7 +232,7 @@ async function importWorker({
     } catch (e) {
       importResult.status = 'error';
       importResult.message = e.message;
-      console.error(e);
+      logger.error(e);
     }
 
     // close browser
