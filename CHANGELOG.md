@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.11.0...v1.12.0) (2024-06-04)
+
+
+### Features
+
+* set custom http headers for import command ([#71](https://github.com/catalan-adobe/aem-bulk-cli/issues/71)) ([aca3766](https://github.com/catalan-adobe/aem-bulk-cli/commit/aca376668cbf152d2bc5f2ad8145ac2646026cd9))
+
 # [1.11.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.10.1...v1.11.0) (2024-06-03)
 
 
