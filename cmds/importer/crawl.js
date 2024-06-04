@@ -49,6 +49,7 @@ export default function crawlCmd() {
           alias: 'httpHeader',
           describe: 'HTTP header to send with the robots.txt/sitemaps requests (example: "User-Agent: Mozilla/5.0")',
           type: 'array',
+          string: true,
         })
         .option('limit', {
           describe: 'Limit max number of URLs to collect',
@@ -131,9 +132,9 @@ export default function crawlCmd() {
 
       // parse headers from argv
       let headers = null;
-      if (argv.httpHeaders) {
+      if (argv.httpHeader) {
         headers = {};
-        argv.httpHeaders.forEach((h) => {
+        argv.httpHeader.forEach((h) => {
           const [key, value] = h.split(':');
           headers[key] = value;
         });

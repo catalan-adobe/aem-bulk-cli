@@ -96,7 +96,7 @@ async function importWorker({
       options: {
         pacingDelay,
         disableJs,
-        cookies,
+        customHeaders,
       },
     } = this;
 
@@ -122,7 +122,7 @@ async function importWorker({
         gdprBlocker: true,
         disableJS: false,
         devTools: false,
-        useLocalChrome: true,
+        useLocalChrome: false,
       });
 
       // disable JS
@@ -149,19 +149,9 @@ async function importWorker({
         }
       });
 
-      // cookies
-      if (cookies) {
-        const allCookies = cookies.split(';').map((c) => {
-          const [name, value] = c.split('=');
-          return {
-            name: name.trim(),
-            value: value.trim(),
-            domain: new URL(url).hostname,
-            path: '/',
-          };
-        });
-
-        await page.setCookie(...allCookies);
+      // custom headers
+      if (customHeaders) {
+        await page.setExtraHTTPHeaders(customHeaders);
       }
 
       const resp = await page.goto(url, { waitUntil: 'networkidle2' });
@@ -267,11 +257,11 @@ export default function importCmd() {
           type: 'boolean',
           default: true,
         })
-        .option('cookies', {
-          alias: 'cookies',
-          describe: 'cookie string to be used for the request',
-          type: 'string',
-          default: null,
+        .option('custom-header', {
+          alias: 'customHeader',
+          describe: 'custom header to set in the browser',
+          type: 'array',
+          string: true,
         })
         .option('retries', {
           describe: 'Number of retried in case of import error',
@@ -284,7 +274,7 @@ export default function importCmd() {
           default: 'import-report.xlsx',
           type: 'string',
         })
-        .group(['cookies', 'disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
+        .group(['custom-header', 'disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
         .help();
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
@@ -322,6 +312,16 @@ export default function importCmd() {
         writeEvery: 1,
       });
 
+      // parse browser headers
+      let customHeaders = null;
+      if (argv.customHeader) {
+        customHeaders = {};
+        argv.customHeader.forEach((h) => {
+          const [key, value] = h.split(':');
+          customHeaders[key] = value;
+        });
+      }
+
       // init queue
       const queue = fastq.promise(
         {
@@ -330,7 +330,7 @@ export default function importCmd() {
           options: {
             pacingDelay: argv.pacingDelay,
             disableJs: argv.disableJs,
-            cookies: argv.cookies,
+            customHeaders,
           },
         },
         importWorker,
