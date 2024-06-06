@@ -46,6 +46,7 @@ export default {
       // 'noscript', <= DO NOT REMOVE, could contain images for example
     ]);
 
+    // adjust anchor links
     if (main.querySelector('a[href^="#"]')) {
       const u = new URL(url);
       const links = main.querySelectorAll('a[href^="#"]');
@@ -54,6 +55,14 @@ export default {
         a.href = `${u.pathname}${a.getAttribute('href')}`;
       }
     }
+
+    // make all links absolute
+    document.querySelectorAll('a').forEach((a) => {
+      if (a.href) {
+        // eslint-disable-next-line no-param-reassign
+        a.href = new URL(a.href, params.originalURL).href;
+      }
+    });
 
     WebImporter.rules.createMetadata(main, document);
     WebImporter.rules.transformBackgroundImages(main, document);
