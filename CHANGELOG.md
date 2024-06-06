@@ -1,3 +1,10 @@
+## [1.12.2](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.12.1...v1.12.2) (2024-06-06)
+
+
+### Bug Fixes
+
+* **import:** default import script, make all links absolute ([#72](https://github.com/catalan-adobe/aem-bulk-cli/issues/72)) ([1e78e07](https://github.com/catalan-adobe/aem-bulk-cli/commit/1e78e0744312f0af9f03a97f8088f4ea3d7ce3fe))
+
 ## [1.12.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.12.0...v1.12.1) (2024-06-04)
 
 
