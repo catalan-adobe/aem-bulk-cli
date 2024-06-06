@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.12.2...v1.13.0) (2024-06-06)
+
+
+### Features
+
+* **importer:** add command to extract minimal css for a given url ([#73](https://github.com/catalan-adobe/aem-bulk-cli/issues/73)) ([e37dfb6](https://github.com/catalan-adobe/aem-bulk-cli/commit/e37dfb62e6fab3e920d2300759608988e833aed7))
+
 ## [1.12.2](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.12.1...v1.12.2) (2024-06-06)
 
 
