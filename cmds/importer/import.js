@@ -115,6 +115,7 @@ async function importWorker({
       status: 'done',
       message: '',
       docxFilename: '',
+      files: [],
     };
 
     try {
@@ -236,9 +237,10 @@ async function importWorker({
 
             logger.debug(`imported page saved to docx file ${docxPath}.docx`);
 
-            filenames.push(`${docxPath}.docx`);
+            filenames.push(`${file.path}.docx`);
           }
           importResult.docxFilename = filenames.join(', ');
+          importResult.files = filenames;
         }
       });
     } catch (e) {
@@ -333,9 +335,9 @@ export default function importCmd() {
       // init excel report
       const excelReport = new ExcelWriter({
         filename: argv.excelReport,
-        headers: ['url', 'docx filename(s)', 'status', 'message'],
+        headers: ['url', 'path', 'docx path', 'status', 'message'],
         formatRowFn: (r) => {
-          const row = ['url', 'docxFilename', 'status', 'message'].map((k) => r[k]);
+          const row = ['url', 'path', 'docxFilename', 'status', 'message'].map((k) => r[k]);
           return row;
         },
         writeEvery: 1,
@@ -409,7 +411,17 @@ export default function importCmd() {
           }
 
           logger.info(`[${result.status.padEnd(8)}] import done for ${result.url} (${result.message})`);
-          await excelReport.addRow(result);
+
+          for (const file of result.files) {
+            const row = {
+              url: result.url,
+              path: path.dirname(file),
+              docxFilename: file,
+              status: result.status,
+              message: result.message,
+            };
+            await excelReport.addRow(row);
+          }
         }
       };
 
