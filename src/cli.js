@@ -155,7 +155,7 @@ export function withCommonCLIParameters(yargs) {
       alias: 'logLevel',
       describe: 'Log level',
       type: 'string',
-      choices: ['debug', 'info', 'warn', 'error'],
+      choices: ['silly', 'debug', 'info', 'warn', 'error'],
       default: 'info',
     })
     .option('log-file', {
