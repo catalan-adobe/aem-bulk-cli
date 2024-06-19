@@ -22,13 +22,22 @@ import { Cluster } from 'puppeteer-cluster';
 
 import { ExcelWriter } from '../../src/excel.js';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
+import { getLogger } from '../../src/logger.js';
 
 const DEFAULT_IMPORT_SCRIPT_URL = 'http://localhost:8888/defaults/import-script.js';
-const pageImages = [];
 
 /**
  * functions
  */
+
+function truncateString(str, firstCharCount = str.length, endCharCount = 0) {
+  if (str.length <= firstCharCount + endCharCount) {
+    return str; // No truncation needed
+  }
+  const firstPortion = str.slice(0, firstCharCount);
+  const endPortion = str.slice(-endCharCount);
+  return `${firstPortion}...${endPortion}`;
+}
 
 async function startHTTPServer(customImportScriptPath = null) {
   const scriptPath = customImportScriptPath
@@ -65,23 +74,25 @@ async function disableJS(page) {
   );
 }
 
-async function image2png({ src, data }) {
-  try {
-    const found = pageImages.find((img) => img.url === src);
-    const imgData = found ? found.buffer : data;
-    const png = (await sharp(imgData)).png();
-    const metadata = await png.metadata();
-    return {
-      data: png.toBuffer(),
-      width: metadata.width,
-      height: metadata.height,
-      type: 'image/png',
-    };
-  } catch (e) {
-    /* eslint-disable no-console */
-    console.error(`Cannot convert image ${src} to png. It might corrupt the Word document and you should probably remove it from the DOM.`);
-    return null;
-  }
+function getImage2PngFunction(imageCache) {
+  return async function image2png({ src, data }) {
+    try {
+      const found = imageCache.find((img) => img.url === src);
+      const imgData = found ? found.buffer : data;
+      const png = (await sharp(imgData)).png();
+      const metadata = await png.metadata();
+      return {
+        data: png.toBuffer(),
+        width: metadata.width,
+        height: metadata.height,
+        type: 'image/png',
+      };
+    } catch (e) {
+      /* eslint-disable no-console */
+      console.error(`Cannot convert image ${src} to png. It might corrupt the Word document and you should probably remove it from the DOM.`);
+      return null;
+    }
+  };
 }
 
 /**
@@ -92,7 +103,6 @@ async function importWorker({
   // payload
   url,
   retries,
-  logger,
 }) {
   /* eslint-disable no-async-promise-executor */
   return new Promise(async (resolve) => {
@@ -118,11 +128,15 @@ async function importWorker({
       files: [],
     };
 
+    let logger = getLogger('importer-worker');
+
     try {
       // pacing delay
       await AEMBulk.Time.sleep(pacingDelay);
 
       await pptrCluster.execute({ url }, async ({ page, data, worker }) => {
+        logger = getLogger(`importer-worker-${worker.id}`);
+
         await page.setDefaultNavigationTimeout(pageTimeout);
 
         /* eslint-disable no-shadow */
@@ -143,16 +157,21 @@ async function importWorker({
         page.on('request', (req) => {
           req.continue();
         });
+        const pageImages = [];
         page.on('requestfinished', async (req) => {
           if (req.resourceType() === 'image') {
-            const response = await req.response();
-            const contentType = response.headers()['content-type'];
-            if (response && response.status() < 300 && contentType && contentType.startsWith('image')) {
-              const buffer = await response.buffer();
-              const type = response.headers()['content-type'];
-              const imgUrl = req.url();
-              logger.debug(`storing image ${imgUrl} - ${type} - ${buffer.length} bytes`);
-              pageImages.push({ url: imgUrl, buffer, type });
+            try {
+              const response = await req.response();
+              const contentType = response.headers()['content-type'];
+              if (response && response.status() < 300 && contentType && contentType.startsWith('image')) {
+                const buffer = await response.buffer();
+                const type = response.headers()['content-type'];
+                const imgUrl = req.url();
+                logger.debug(`storing image ${truncateString(imgUrl, 50, 50).padEnd(105, ' ')} - ${type.padEnd(10, ' ')} - ${(buffer.length).toString().padStart(7, ' ')} bytes`);
+                pageImages.push({ url: imgUrl, buffer, type });
+              }
+            } catch (e) {
+              logger.error(`error storing image (${req.url()}): ${e.message}: ${e.stack}`);
             }
           }
         });
@@ -218,7 +237,7 @@ async function importWorker({
             /* eslint-disable no-await-in-loop */
             const docx = await md2docx(file.md, {
               docxStylesXML: null,
-              image2png,
+              image2png: getImage2PngFunction(pageImages),
               log: {
                 info: () => {},
                 warn: () => {},
@@ -246,8 +265,7 @@ async function importWorker({
     } catch (e) {
       importResult.status = 'error';
       importResult.message = e.message;
-      /* eslint-disable no-console */
-      console.error(e);
+      logger.error(e);
     }
 
     resolve(importResult);
@@ -368,7 +386,6 @@ export default function importCmd() {
       // init queue
       const queue = fastq.promise(
         {
-          logger,
           AEMBulk,
           options: {
             pptrCluster,
