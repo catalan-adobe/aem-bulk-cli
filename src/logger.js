@@ -19,12 +19,14 @@ const myCustomLevels = {
     warn: 1,
     info: 2,
     debug: 3,
+    silly: 4,
   },
   colors: {
     error: 'red',
     warn: 'yellow',
     info: 'green',
     debug: 'blue',
+    silly: 'grey',
   },
 };
 
