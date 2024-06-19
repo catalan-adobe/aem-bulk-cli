@@ -18,7 +18,6 @@ import fs from 'fs';
 import path from 'path';
 import serveStatic from 'serve-static';
 import sharp from 'sharp';
-import { Cluster } from 'puppeteer-cluster';
 
 import { ExcelWriter } from '../../src/excel.js';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
@@ -155,6 +154,9 @@ async function importWorker({
         // intercept all images and store them as PNG in an array
         await page.setRequestInterception(true);
         page.on('request', (req) => {
+          if (req.isInterceptResolutionHandled()) {
+            return;
+          }
           req.continue();
         });
         const pageImages = [];
@@ -167,7 +169,7 @@ async function importWorker({
                 const buffer = await response.buffer();
                 const type = response.headers()['content-type'];
                 const imgUrl = req.url();
-                logger.debug(`storing image ${truncateString(imgUrl, 50, 50).padEnd(105, ' ')} - ${type.padEnd(10, ' ')} - ${(buffer.length).toString().padStart(7, ' ')} bytes`);
+                logger.silly(`storing image ${truncateString(imgUrl, 50, 50).padEnd(105, ' ')} - ${type.padEnd(10, ' ')} - ${(buffer.length).toString().padStart(7, ' ')} bytes`);
                 pageImages.push({ url: imgUrl, buffer, type });
               }
             } catch (e) {
@@ -372,16 +374,15 @@ export default function importCmd() {
       }
 
       // init puppeteer cluster
-      const pptrCluster = await Cluster.launch({
-        concurrency: Cluster.CONCURRENCY_BROWSER,
-        maxConcurrency: argv.workers,
-        puppeteerOptions: {
-          // headless: false,
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--remote-allow-origins=*', '--disable-web-security'],
+      const pptrCluster = await AEMBulk.Puppeteer.initBrowserCluster(
+        argv.workers,
+        {
+          headless: true,
+          disableJS: argv.disableJs,
+          pageTimeout: argv.pageTimeout,
+          extraArgs: ['--no-sandbox', '--disable-setuid-sandbox', '--remote-allow-origins=*', '--disable-web-security'],
         },
-        perBrowserOptions: undefined,
-        timeout: argv.pageTimeout,
-      });
+      );
 
       // init queue
       const queue = fastq.promise(
