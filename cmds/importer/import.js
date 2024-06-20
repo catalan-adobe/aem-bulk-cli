@@ -73,6 +73,25 @@ async function disableJS(page) {
   );
 }
 
+async function rewriteUrlsToRelative(page, url, rewriteFn) {
+  const client = await page.target().createCDPSession();
+  const interceptManager = new RequestInterceptionManager(client);
+  await interceptManager.intercept(
+    {
+      urlPattern: url,
+      resourceType: 'Document',
+      modifyResponse({ body }) {
+        if (body) {
+          const u = new URL(url);
+          const result = rewriteFn(body, u.origin);
+          return { body: result };
+        }
+        return { body };
+      },
+    },
+  );
+}
+
 function getImage2PngFunction(imageCache) {
   return async function image2png({ src, data }) {
     try {
@@ -147,6 +166,9 @@ async function importWorker({
         if (disableJs) {
           await disableJS(page);
         }
+
+        // rewrite URLs to relative
+        rewriteUrlsToRelative(page, url, AEMBulk.Web.rewriteLinksRelative);
 
         // force bypass CSP
         await page.setBypassCSP(true);
