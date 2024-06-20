@@ -258,7 +258,7 @@ async function importWorker({
 
             logger.debug(`imported page saved to docx file ${docxPath}.docx`);
 
-            filenames.push(`${file.path}.docx`);
+            filenames.push(file.path);
           }
           importResult.docxFilename = filenames.join(', ');
           importResult.files = filenames;
@@ -433,8 +433,8 @@ export default function importCmd() {
           for (const file of result.files) {
             const row = {
               url: result.url,
-              path: path.dirname(file),
-              docxFilename: file,
+              path: file.replace(/\/index$/, '/'),
+              docxFilename: `${file}.docx`,
               status: result.status,
               message: result.message,
             };
