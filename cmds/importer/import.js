@@ -21,19 +21,33 @@ import sharp from 'sharp';
 
 import { ExcelWriter } from '../../src/excel.js';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
+import { getLogger } from '../../src/logger.js';
 
 const DEFAULT_IMPORT_SCRIPT_URL = 'http://localhost:8888/defaults/import-script.js';
-const pageImages = [];
 
 /**
  * functions
  */
 
-async function startHTTPServer() {
+function truncateString(str, firstCharCount = str.length, endCharCount = 0) {
+  if (str.length <= firstCharCount + endCharCount) {
+    return str; // No truncation needed
+  }
+  const firstPortion = str.slice(0, firstCharCount);
+  const endPortion = str.slice(-endCharCount);
+  return `${firstPortion}...${endPortion}`;
+}
+
+async function startHTTPServer(customImportScriptPath = null) {
+  const scriptPath = customImportScriptPath
+    ? path.resolve(path.dirname(customImportScriptPath))
+    : path.join(import.meta.dirname, '../../src/importer');
+
   const app = express();
   app.use(cors());
-  app.use(serveStatic(path.join(import.meta.dirname, '../../src/importer')));
-  return app.listen(8888);
+  app.use(serveStatic(scriptPath));
+
+  return app.listen(8888, { index: true });
 }
 
 async function disableJS(page) {
@@ -59,23 +73,44 @@ async function disableJS(page) {
   );
 }
 
-async function image2png({ src, data }) {
-  try {
-    const found = pageImages.find((img) => img.url === src);
-    const imgData = found ? found.buffer : data;
-    const png = (await sharp(imgData)).png();
-    const metadata = await png.metadata();
-    return {
-      data: png.toBuffer(),
-      width: metadata.width,
-      height: metadata.height,
-      type: 'image/png',
-    };
-  } catch (e) {
-    /* eslint-disable no-console */
-    console.error(`Cannot convert image ${src} to png. It might corrupt the Word document and you should probably remove it from the DOM.`);
-    return null;
-  }
+async function rewriteUrlsToRelative(page, url, rewriteFn) {
+  const client = await page.target().createCDPSession();
+  const interceptManager = new RequestInterceptionManager(client);
+  await interceptManager.intercept(
+    {
+      urlPattern: url,
+      resourceType: 'Document',
+      modifyResponse({ body }) {
+        if (body) {
+          const u = new URL(url);
+          const result = rewriteFn(body, u.origin);
+          return { body: result };
+        }
+        return { body };
+      },
+    },
+  );
+}
+
+function getImage2PngFunction(imageCache) {
+  return async function image2png({ src, data }) {
+    try {
+      const found = imageCache.find((img) => img.url === src);
+      const imgData = found ? found.buffer : data;
+      const png = (await sharp(imgData)).png();
+      const metadata = await png.metadata();
+      return {
+        data: png.toBuffer(),
+        width: metadata.width,
+        height: metadata.height,
+        type: 'image/png',
+      };
+    } catch (e) {
+      /* eslint-disable no-console */
+      console.error(`Cannot convert image ${src} to png. It might corrupt the Word document and you should probably remove it from the DOM.`);
+      return null;
+    }
+  };
 }
 
 /**
@@ -86,7 +121,6 @@ async function importWorker({
   // payload
   url,
   retries,
-  logger,
 }) {
   /* eslint-disable no-async-promise-executor */
   return new Promise(async (resolve) => {
@@ -95,13 +129,13 @@ async function importWorker({
       AEMBulk,
       options: {
         pacingDelay,
+        pageTimeout,
         disableJs,
+        customImportScriptPath,
         customHeaders,
+        pptrCluster,
       },
     } = this;
-
-    let browser;
-    let page;
 
     const importResult = {
       url,
@@ -109,126 +143,153 @@ async function importWorker({
       status: 'done',
       message: '',
       docxFilename: '',
+      files: [],
     };
+
+    let logger = getLogger('importer-worker');
 
     try {
       // pacing delay
       await AEMBulk.Time.sleep(pacingDelay);
 
-      [browser, page] = await AEMBulk.Puppeteer.initBrowser({
-        port: 0,
-        headless: true,
-        adBlocker: true,
-        gdprBlocker: true,
-        disableJS: false,
-        devTools: false,
-        useLocalChrome: false,
-      });
+      await pptrCluster.execute({ url }, async ({ page, data, worker }) => {
+        logger = getLogger(`importer-worker-${worker.id}`);
 
-      // disable JS
-      if (disableJs) {
-        await disableJS(page);
-      }
+        await page.setDefaultNavigationTimeout(pageTimeout);
 
-      // force bypass CSP
-      await page.setBypassCSP(true);
+        /* eslint-disable no-shadow */
+        const { url } = data;
 
-      // intercept all images and store them as PNG in an array
-      await page.setRequestInterception(true);
-      page.on('requestfinished', async (req) => {
-        if (req.resourceType() === 'image') {
-          const response = await req.response();
-          const contentType = response.headers()['content-type'];
-          if (response && response.status() < 300 && contentType && contentType.startsWith('image')) {
-            const buffer = await response.buffer();
-            const type = response.headers()['content-type'];
-            const imgUrl = req.url();
-            logger.debug(`storing image ${imgUrl} - ${type} - ${buffer.length} bytes`);
-            pageImages.push({ url: imgUrl, buffer, type });
+        logger.debug(`importing ${url} on browser instance ${worker.id}`);
+
+        // disable JS
+        if (disableJs) {
+          await disableJS(page);
+        }
+
+        // rewrite URLs to relative
+        rewriteUrlsToRelative(page, url, AEMBulk.Web.rewriteLinksRelative);
+
+        // force bypass CSP
+        await page.setBypassCSP(true);
+
+        // intercept all images and store them as PNG in an array
+        await page.setRequestInterception(true);
+        page.on('request', (req) => {
+          if (req.isInterceptResolutionHandled()) {
+            return;
           }
-        }
-      });
-
-      // custom headers
-      if (customHeaders) {
-        await page.setExtraHTTPHeaders(customHeaders);
-      }
-
-      const resp = await page.goto(url, { waitUntil: 'networkidle2' });
-
-      // compute status
-      if (resp.status() >= 400) {
-        // error -> stop + do not retry
-        importResult.status = 'error';
-        importResult.message = `status code ${resp.status()}`;
-        importResult.retries = 0;
-      } else if (resp.request()?.redirectChain()?.length > 0) {
-        // redirect -> stop
-        importResult.status = 'redirect';
-        importResult.message = `redirected to ${resp.url()}`;
-      } else {
-        // ok -> import
-
-        // force scroll
-        if (!disableJs) {
-          await AEMBulk.Puppeteer.smartScroll(page, { postReset: true });
-        }
-
-        const urlDetails = AEMBulk.FS.computeFSDetailsFromUrl(url);
-        const docxPath = path.join('docx', urlDetails.path);
-        if (!fs.existsSync(docxPath)) {
-          fs.mkdirSync(docxPath, { recursive: true });
-        }
-
-        // inject helix-import library script
-        // will provice WebImporter.html2docx function in browser context
-        const js = fs.readFileSync(path.join(import.meta.dirname, '../../vendors/helix-importer.js'), 'utf-8');
-        await page.evaluate(js);
-
-        const md = await page.evaluate(async (importScriptURL) => {
-          /* eslint-disable */
-          // code executed in the browser context
-
-          // import the custom transform config          
-          const customTransformConfig = await import(importScriptURL);
-          
-          // execute default import script
-          const out = await WebImporter.html2docx(location.href, document, customTransformConfig.default, { toDocx: false, toMd: true });
-
-          // return the md content
-          return out.md;
-          /* eslint-enable */
-        }, DEFAULT_IMPORT_SCRIPT_URL);
-
-        // convert markdown to docx
-        const docx = await md2docx(md, {
-          docxStylesXML: null,
-          image2png,
-          log: {
-            info: () => {},
-            warn: () => {},
-            error: () => {},
-            log: () => {},
-          },
+          req.continue();
+        });
+        const pageImages = [];
+        page.on('requestfinished', async (req) => {
+          if (req.resourceType() === 'image') {
+            try {
+              const response = await req.response();
+              const contentType = response.headers()['content-type'];
+              if (response && response.status() < 300 && contentType && contentType.startsWith('image')) {
+                const buffer = await response.buffer();
+                const type = response.headers()['content-type'];
+                const imgUrl = req.url();
+                logger.silly(`storing image ${truncateString(imgUrl, 50, 50).padEnd(105, ' ')} - ${type.padEnd(10, ' ')} - ${(buffer.length).toString().padStart(7, ' ')} bytes`);
+                pageImages.push({ url: imgUrl, buffer, type });
+              }
+            } catch (e) {
+              logger.error(`error storing image (${req.url()}): ${e.message}: ${e.stack}`);
+            }
+          }
         });
 
-        // save docx file
-        fs.writeFileSync(path.join(process.cwd(), docxPath, `${urlDetails.filename}.docx`), docx);
+        // custom headers
+        if (customHeaders) {
+          await page.setExtraHTTPHeaders(customHeaders);
+        }
 
-        logger.debug(`imported page saved to docx file ${docxPath}/${urlDetails.filename}.docx`);
+        const resp = await page.goto(url, { waitUntil: 'networkidle2' });
 
-        importResult.docxFilename = `${docxPath}${urlDetails.filename}.docx`;
-      }
+        // compute status
+        if (resp.status() >= 400) {
+          // error -> stop + do not retry
+          importResult.status = 'error';
+          importResult.message = `status code ${resp.status()}`;
+          importResult.retries = 0;
+        } else if (resp.request()?.redirectChain()?.length > 0 && resp.url() !== url) {
+          // redirect -> stop
+          importResult.status = 'redirect';
+          importResult.message = `redirected to ${resp.url()}`;
+        } else {
+          // ok -> import
+
+          // force scroll
+          if (!disableJs) {
+            await AEMBulk.Puppeteer.smartScroll(page, { postReset: true });
+          }
+
+          // inject helix-import library script
+          // will provide WebImporter.html2docx function in browser context
+          const js = fs.readFileSync(path.join(import.meta.dirname, '../../vendors/helix-importer.js'), 'utf-8');
+          await page.evaluate(js);
+
+          const importScriptURL = customImportScriptPath
+            ? `http://localhost:8888/${path.basename(customImportScriptPath)}`
+            : DEFAULT_IMPORT_SCRIPT_URL;
+
+          const importTransformResult = await page.evaluate(async (originalURL, importScript) => {
+            /* eslint-disable */
+            // code executed in the browser context
+
+            // import the custom transform config          
+            const customTransformConfig = await import(importScript);
+            
+            // execute default import script
+            const out = await WebImporter.html2md(location.href, document, customTransformConfig.default, { originalURL, toDocx: false, toMd: true });
+
+            // return the md content
+            return out;
+            /* eslint-enable */
+          }, url, importScriptURL);
+
+          const files = Array.isArray(importTransformResult)
+            ? importTransformResult
+            : [importTransformResult];
+
+          const filenames = [];
+          for (let i = 0; i < files.length; i += 1) {
+            const file = files[i];
+
+            // convert markdown to docx
+            /* eslint-disable no-await-in-loop */
+            const docx = await md2docx(file.md, {
+              docxStylesXML: null,
+              image2png: getImage2PngFunction(pageImages),
+              log: {
+                info: () => {},
+                warn: () => {},
+                error: () => {},
+                log: () => {},
+              },
+            });
+
+            // save docx file
+            const docxPath = path.resolve(path.join('docx', file.path));
+            if (!fs.existsSync(path.dirname(docxPath))) {
+              fs.mkdirSync(path.dirname(docxPath), { recursive: true });
+            }
+
+            fs.writeFileSync(`${docxPath}.docx`, docx);
+
+            logger.debug(`imported page saved to docx file ${docxPath}.docx`);
+
+            filenames.push(file.path);
+          }
+          importResult.docxFilename = filenames.join(', ');
+          importResult.files = filenames;
+        }
+      });
     } catch (e) {
       importResult.status = 'error';
       importResult.message = e.message;
-      /* eslint-disable no-console */
-      console.error(e);
-    }
-
-    // close browser
-    if (browser) {
-      await browser.close();
+      logger.error(e);
     }
 
     resolve(importResult);
@@ -257,6 +318,18 @@ export default function importCmd() {
           type: 'boolean',
           default: true,
         })
+        .option('import-script-path', {
+          alias: 'importScriptPath',
+          describe: 'Path to the custom import script to use for the import',
+          type: 'string',
+          string: true,
+        })
+        .option('page-timeout', {
+          alias: 'pageTimeout',
+          describe: 'Timeout in milliseconds for each page load',
+          type: 'number',
+          default: 30000,
+        })
         .option('custom-header', {
           alias: 'customHeader',
           describe: 'custom header to set in the browser',
@@ -274,7 +347,7 @@ export default function importCmd() {
           default: 'import-report.xlsx',
           type: 'string',
         })
-        .group(['custom-header', 'disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
+        .group(['import-script-path', 'custom-header', 'disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
         .help();
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
@@ -287,7 +360,7 @@ export default function importCmd() {
        */
 
       // http server to serve the import script
-      const httpServer = await startHTTPServer();
+      const httpServer = await startHTTPServer(argv.importScriptPath);
 
       // parse URLs
       let urls = [];
@@ -304,9 +377,9 @@ export default function importCmd() {
       // init excel report
       const excelReport = new ExcelWriter({
         filename: argv.excelReport,
-        headers: ['url', 'docx filename', 'status', 'message'],
+        headers: ['url', 'path', 'docx path', 'status', 'message'],
         formatRowFn: (r) => {
-          const row = ['url', 'docxFilename', 'status', 'message'].map((k) => r[k]);
+          const row = ['url', 'path', 'docxFilename', 'status', 'message'].map((k) => r[k]);
           return row;
         },
         writeEvery: 1,
@@ -322,14 +395,27 @@ export default function importCmd() {
         });
       }
 
+      // init puppeteer cluster
+      const pptrCluster = await AEMBulk.Puppeteer.initBrowserCluster(
+        argv.workers,
+        {
+          headless: true,
+          disableJS: argv.disableJs,
+          pageTimeout: argv.pageTimeout,
+          extraArgs: ['--no-sandbox', '--disable-setuid-sandbox', '--remote-allow-origins=*', '--disable-web-security'],
+        },
+      );
+
       // init queue
       const queue = fastq.promise(
         {
-          logger,
           AEMBulk,
           options: {
+            pptrCluster,
             pacingDelay: argv.pacingDelay,
+            pageTimeout: argv.pageTimeout,
             disableJs: argv.disableJs,
+            customImportScriptPath: argv.importScriptPath,
             customHeaders,
           },
         },
@@ -365,7 +451,17 @@ export default function importCmd() {
           }
 
           logger.info(`[${result.status.padEnd(8)}] import done for ${result.url} (${result.message})`);
-          await excelReport.addRow(result);
+
+          for (const file of result.files) {
+            const row = {
+              url: result.url,
+              path: file.replace(/\/index$/, '/'),
+              docxFilename: `${file}.docx`,
+              status: result.status,
+              message: result.message,
+            };
+            await excelReport.addRow(row);
+          }
         }
       };
 
@@ -381,6 +477,7 @@ export default function importCmd() {
         await queue.drained();
         logger.debug('queue - done, stop queue');
         await queue.kill();
+        await pptrCluster.close();
       } catch (e) {
         logger.error(`main command thread: ${e.stack}`);
       }

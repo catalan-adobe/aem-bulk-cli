@@ -9,7 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-import { createLogger, format, transports } from 'winston';
+import winston, { createLogger, format, transports } from 'winston';
 
 let LOGGER_INSTANCE = null;
 
@@ -19,12 +19,14 @@ const myCustomLevels = {
     warn: 1,
     info: 2,
     debug: 3,
+    silly: 4,
   },
   colors: {
     error: 'red',
     warn: 'yellow',
     info: 'green',
     debug: 'blue',
+    silly: 'grey',
   },
 };
 
@@ -49,6 +51,8 @@ const DEFAULT_LOGGER_OPTIONS = {
   format: DEFAULT_FORMAT,
   exitOnError: false,
 };
+
+winston.addColors(myCustomLevels.colors);
 
 function setupLogger() {
   if (LOGGER_INSTANCE !== null && LOGGER_INSTANCE !== undefined) {

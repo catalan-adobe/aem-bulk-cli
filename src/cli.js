@@ -84,7 +84,7 @@ export class CommonCommandHandler {
         const cmdCommand = argv._ ? argv._.join('_>_') : 'unknown';
         this.logger = getLogger(cmdCommand, {
           level: argv.logLevel,
-          file: argv.logFile,
+          file: argv.logFile === 'aem-bulk-<cmd>.log' ? `aem-bulk-${argv._.join('_')}.log` : argv.logFile,
         });
 
         /**
@@ -155,7 +155,7 @@ export function withCommonCLIParameters(yargs) {
       alias: 'logLevel',
       describe: 'Log level',
       type: 'string',
-      choices: ['debug', 'info', 'warn', 'error'],
+      choices: ['silly', 'debug', 'info', 'warn', 'error'],
       default: 'info',
     })
     .option('log-file', {
@@ -163,6 +163,7 @@ export function withCommonCLIParameters(yargs) {
       describe: 'Log file',
       type: 'string',
       normalize: true,
+      default: 'aem-bulk-<cmd>.log',
     })
     .option('workers', {
       describe: 'Number of workers to use (max. 5)',
