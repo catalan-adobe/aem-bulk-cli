@@ -16,15 +16,29 @@
 
 import fs from 'fs';
 
+const files = [
+  {
+    name: 'helix-importer.js',
+    url: 'https://raw.githubusercontent.com/adobe/helix-importer-ui/main/js/dist/helix-importer.js',
+  },
+  {
+    name: 'helix-importer-html2jcr.js',
+    url: 'https://raw.githubusercontent.com/mhaack/helix-importer-ui/html2jcr/js/dist/helix-importer.js',
+  },
+];
+
 try {
-  const resp = await fetch('https://raw.githubusercontent.com/adobe/helix-importer-ui/main/js/dist/helix-importer.js');
+  /* eslint-disable no-await-in-loop */
+  for (let i = 0; i < files.length; i += 1) {
+    const resp = await fetch(files[i].url);
 
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch helix-importer.js: ${resp.status} ${resp.statusText}`);
+    if (!resp.ok) {
+      throw new Error(`Failed to fetch ${files[i].name}: ${resp.status} ${resp.statusText}`);
+    }
+
+    const text = await resp.text();
+    fs.writeFileSync(`vendors/${files[i].name}`, text);
   }
-
-  const text = await resp.text();
-  fs.writeFileSync('vendors/helix-importer.js', text);
 } catch (e) {
   throw new Error('Failed to fetch helix-importer.js', e);
 }

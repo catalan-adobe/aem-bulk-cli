@@ -25,6 +25,24 @@ import { getLogger } from '../../src/logger.js';
 
 const DEFAULT_IMPORT_SCRIPT_URL = 'http://localhost:8888/defaults/import-script.js';
 
+const IMPORT_FORMATS = {
+  DOCX: 'docx',
+  JCR: 'jcr',
+};
+
+const IMPORT_FORMATS_MAPPING = {
+  DOCX: {
+    script: '../../vendors/helix-importer.js',
+    transformFnName: 'html2md',
+    ext: 'docx',
+  },
+  JCR: {
+    script: '../../vendors/helix-importer-html2jcr.js',
+    transformFnName: 'html2jcr',
+    ext: 'xml',
+  },
+};
+
 /**
  * functions
  */
@@ -113,6 +131,85 @@ function getImage2PngFunction(imageCache) {
   };
 }
 
+async function importPage(page, url, saveAs, customImportScriptPath, pageImages, logger) {
+  const saveAsKey = Object.entries(IMPORT_FORMATS).find(([, v]) => v === saveAs)[0];
+  const { script, transformFnName, ext } = IMPORT_FORMATS_MAPPING[saveAsKey];
+
+  // inject helix-import library script
+  // will provide WebImporter.html2docx function in browser context
+  const js = fs.readFileSync(path.join(import.meta.dirname, script), 'utf-8');
+  await page.evaluate(js);
+
+  const importScriptURL = customImportScriptPath
+    ? `http://localhost:8888/${path.basename(customImportScriptPath)}`
+    : DEFAULT_IMPORT_SCRIPT_URL;
+
+  const importTransformResult = await page.evaluate(async (originalURL, importScript, fn) => {
+    /* eslint-disable */
+    // code executed in the browser context
+
+    // import the custom transform config          
+    const customTransformConfig = await import(importScript);
+    
+    // execute default import script
+    const out = await WebImporter[fn](location.href, document, customTransformConfig.default, { originalURL, toDocx: false, toMd: true });
+
+    // return the md content
+    return out;
+    /* eslint-enable */
+  }, url, importScriptURL, transformFnName);
+
+  const files = Array.isArray(importTransformResult)
+    ? importTransformResult
+    : [importTransformResult];
+
+  const filenames = [];
+  for (let i = 0; i < files.length; i += 1) {
+    const file = files[i];
+
+    if (saveAs === IMPORT_FORMATS.DOCX) {
+      // convert markdown to docx
+      /* eslint-disable no-await-in-loop */
+      const docx = await md2docx(file.md, {
+        docxStylesXML: null,
+        image2png: getImage2PngFunction(pageImages),
+        log: {
+          info: () => {},
+          warn: () => {},
+          error: () => {},
+          log: () => {},
+        },
+      });
+
+      // save docx file
+      const docxPath = path.resolve(path.join('docx', file.path));
+      if (!fs.existsSync(path.dirname(docxPath))) {
+        fs.mkdirSync(path.dirname(docxPath), { recursive: true });
+      }
+
+      fs.writeFileSync(`${docxPath}.docx`, docx);
+
+      logger.debug(`imported page saved to docx file ${docxPath}.docx`);
+    } else if (saveAs === IMPORT_FORMATS.JCR) {
+      // save jcr file
+      const jcrPath = path.resolve(path.join('jcr', file.path));
+      if (!fs.existsSync(path.dirname(jcrPath))) {
+        fs.mkdirSync(path.dirname(jcrPath), { recursive: true });
+      }
+
+      fs.writeFileSync(`${jcrPath}.xml`, file.jcr);
+
+      logger.debug(`imported page saved to xml file ${jcrPath}.xml`);
+    }
+
+    filenames.push({
+      path: file.path.replace(/\/index$/, '/'),
+      filename: `${file.path}.${ext}`,
+    });
+  }
+  return filenames;
+}
+
 /**
  * worker
  */
@@ -128,6 +225,7 @@ async function importWorker({
     const {
       AEMBulk,
       options: {
+        saveAs,
         pacingDelay,
         pageTimeout,
         disableJs,
@@ -225,63 +323,15 @@ async function importWorker({
             await AEMBulk.Puppeteer.smartScroll(page, { postReset: true });
           }
 
-          // inject helix-import library script
-          // will provide WebImporter.html2docx function in browser context
-          const js = fs.readFileSync(path.join(import.meta.dirname, '../../vendors/helix-importer.js'), 'utf-8');
-          await page.evaluate(js);
+          const filenames = await importPage(
+            page,
+            url,
+            saveAs,
+            customImportScriptPath,
+            pageImages,
+            logger,
+          );
 
-          const importScriptURL = customImportScriptPath
-            ? `http://localhost:8888/${path.basename(customImportScriptPath)}`
-            : DEFAULT_IMPORT_SCRIPT_URL;
-
-          const importTransformResult = await page.evaluate(async (originalURL, importScript) => {
-            /* eslint-disable */
-            // code executed in the browser context
-
-            // import the custom transform config          
-            const customTransformConfig = await import(importScript);
-            
-            // execute default import script
-            const out = await WebImporter.html2md(location.href, document, customTransformConfig.default, { originalURL, toDocx: false, toMd: true });
-
-            // return the md content
-            return out;
-            /* eslint-enable */
-          }, url, importScriptURL);
-
-          const files = Array.isArray(importTransformResult)
-            ? importTransformResult
-            : [importTransformResult];
-
-          const filenames = [];
-          for (let i = 0; i < files.length; i += 1) {
-            const file = files[i];
-
-            // convert markdown to docx
-            /* eslint-disable no-await-in-loop */
-            const docx = await md2docx(file.md, {
-              docxStylesXML: null,
-              image2png: getImage2PngFunction(pageImages),
-              log: {
-                info: () => {},
-                warn: () => {},
-                error: () => {},
-                log: () => {},
-              },
-            });
-
-            // save docx file
-            const docxPath = path.resolve(path.join('docx', file.path));
-            if (!fs.existsSync(path.dirname(docxPath))) {
-              fs.mkdirSync(path.dirname(docxPath), { recursive: true });
-            }
-
-            fs.writeFileSync(`${docxPath}.docx`, docx);
-
-            logger.debug(`imported page saved to docx file ${docxPath}.docx`);
-
-            filenames.push(file.path);
-          }
           importResult.docxFilename = filenames.join(', ');
           importResult.files = filenames;
         }
@@ -323,6 +373,12 @@ export default function importCmd() {
           describe: 'Path to the custom import script to use for the import',
           type: 'string',
           string: true,
+        })
+        .option('save-as', {
+          alias: 'saveAs',
+          describe: 'format(s) to save the imported content as',
+          choices: Object.values(IMPORT_FORMATS),
+          default: 'docx',
         })
         .option('page-timeout', {
           alias: 'pageTimeout',
@@ -377,9 +433,9 @@ export default function importCmd() {
       // init excel report
       const excelReport = new ExcelWriter({
         filename: argv.excelReport,
-        headers: ['url', 'path', 'docx path', 'status', 'message'],
+        headers: ['url', 'path', 'filename', 'status', 'message'],
         formatRowFn: (r) => {
-          const row = ['url', 'path', 'docxFilename', 'status', 'message'].map((k) => r[k]);
+          const row = ['url', 'path', 'filename', 'status', 'message'].map((k) => r[k]);
           return row;
         },
         writeEvery: 1,
@@ -412,6 +468,7 @@ export default function importCmd() {
           AEMBulk,
           options: {
             pptrCluster,
+            saveAs: argv.saveAs,
             pacingDelay: argv.pacingDelay,
             pageTimeout: argv.pageTimeout,
             disableJs: argv.disableJs,
@@ -453,10 +510,11 @@ export default function importCmd() {
           logger.info(`[${result.status.padEnd(8)}] import done for ${result.url} (${result.message})`);
 
           for (const file of result.files) {
+            const { path, filename } = file;
             const row = {
               url: result.url,
-              path: file.replace(/\/index$/, '/'),
-              docxFilename: `${file}.docx`,
+              path,
+              filename,
               status: result.status,
               message: result.message,
             };
