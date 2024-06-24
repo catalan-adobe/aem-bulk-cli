@@ -30,6 +30,12 @@ export default function crawlCmd() {
           demandOption: true,
           type: 'string',
         })
+        .option('strategy', {
+          describe: 'Crawl strategy to use',
+          choices: ['sitemaps', 'http'],
+          default: 'sitemaps',
+          type: 'string',
+        })
         .option('inclusion-filter', {
           alias: 'inclusionFilter',
           describe: 'Filter to apply to the URLs. Only URLs containing this string will be crawled (example: "/blog/*")',
@@ -55,7 +61,7 @@ export default function crawlCmd() {
           describe: 'Limit max number of URLs to collect',
           type: 'number',
         })
-        .group(['origin', 'limit', 'inclusionFilter', 'exclusionFilter', 'timeout', 'httpHeader'], 'Crawl Options:')
+        .group(['origin', 'strategy', 'limit', 'inclusionFilter', 'exclusionFilter', 'timeout', 'httpHeader'], 'Crawl Options:')
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for the found URLs',
@@ -140,20 +146,32 @@ export default function crawlCmd() {
         });
       }
 
+      const allURLs = [];
+
       const result = await AEMBulk.Web.crawl(
         origin,
         {
+          strategy: argv.strategy,
+          workers: argv.workers,
           limit: argv.limit || -1,
           timeout: argv.timeout * 1000,
           logger: getLogger('frk-bulk-shared/web/crawl'),
           inclusionPatterns: argv.inclusionFilter || [],
           exclusionPatterns: argv.exclusionFilter || [],
-          sameDomain: false,
           httpHeaders: headers,
           keepHash: false,
-          urlStreamFn: async (newUrls) => {
-            if (newUrls.length > 0) {
-              await excelReport.addRows(newUrls);
+          urlStreamFn: async (urls) => {
+            if (urls.length > 0) {
+              let newURLs = urls;
+              const validURLsNum = newURLs.filter((u) => u.status === 'valid').length + allURLs.filter((u) => u.status === 'valid').length;
+              if (argv.limit > 0 && validURLsNum >= argv.limit) {
+                const sliceIdx = argv.limit - allURLs.filter((u) => u.status === 'valid').length;
+                newURLs = newURLs.filter((u) => u.status === 'valid').slice(0, sliceIdx);
+              }
+
+              allURLs.push(...newURLs);
+
+              await excelReport.addRows(newURLs);
             }
           },
         },
@@ -163,9 +181,13 @@ export default function crawlCmd() {
       await excelReport.close();
 
       fs.writeFileSync('result.json', JSON.stringify(result, null, 2));
-      fs.writeFileSync(textFile, result.urls.filter((u) => u.status === 'valid').map((u) => u.url).join('\n'));
+      fs.writeFileSync(textFile, result.urls.filter((u) => u.status === 'valid').map((u) => `${u.url}\n`).join(''), 'utf8');
 
-      logger.info(`Crawl completed. Found ${result.urls.length} URLs. Valid URLs saved to ${textFile}`);
+      // final log
+      const l = result.urls.length.toString().length;
+      logger.info('Crawl completed:');
+      logger.info(`* ${result.urls.length} URL(s) discovered`);
+      logger.info(`* ${result.urls.filter((o) => o.status === 'valid').length.toString().padStart(l, ' ')} URL(s) valid (saved to ${textFile})`);
     }),
   };
 }
