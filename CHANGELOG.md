@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.13.1...v1.14.0) (2024-06-24)
+
+
+### Features
+
+* add http strategy for crawl command ([#77](https://github.com/catalan-adobe/aem-bulk-cli/issues/77)) ([06525ef](https://github.com/catalan-adobe/aem-bulk-cli/commit/06525ef2ce0e44dc567b9cd722e1ea2d87500e94))
+
 ## [1.13.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.13.0...v1.13.1) (2024-06-18)
 
 
