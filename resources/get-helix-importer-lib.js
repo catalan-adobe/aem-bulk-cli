@@ -21,10 +21,11 @@ const files = [
     name: 'helix-importer.js',
     url: 'https://raw.githubusercontent.com/adobe/helix-importer-ui/main/js/dist/helix-importer.js',
   },
-  {
-    name: 'helix-importer-html2jcr.js',
-    url: 'https://raw.githubusercontent.com/mhaack/helix-importer-ui/html2jcr/js/dist/helix-importer.js',
-  },
+  // this dependency does not work for now, added file to the project instead
+  // {
+  //   name: 'helix-importer-html2jcr.js',
+  //   url: 'https://raw.githubusercontent.com/mhaack/helix-importer-ui/html2jcr/js/dist/helix-importer.js',
+  // },
 ];
 
 try {
