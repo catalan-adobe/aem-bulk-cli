@@ -403,7 +403,7 @@ export default function importCmd() {
           default: 'import-report.xlsx',
           type: 'string',
         })
-        .group(['import-script-path', 'custom-header', 'disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
+        .group(['saveAs', 'import-script-path', 'custom-header', 'disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
         .help();
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
