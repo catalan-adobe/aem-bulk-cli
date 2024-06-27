@@ -98,7 +98,7 @@ export default function html2jcr() {
           /* eslint-enable */
         }, url);
 
-        const jcrPath = `${importTransformResult.path}.xml`;
+        const jcrPath = path.join(argv.htmlFolder, `${importTransformResult.path}.xml`);
         if (!fs.existsSync(path.dirname(jcrPath))) {
           fs.mkdirSync(path.dirname(jcrPath), { recursive: true });
         }
