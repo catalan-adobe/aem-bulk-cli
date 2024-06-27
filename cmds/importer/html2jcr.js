@@ -71,7 +71,7 @@ export default function html2jcr() {
         logger.debug(`handler - html2jcr start for url ${argv.url}`);
 
         [browser, page] = await AEMBulk.Puppeteer.initBrowser({
-          headless: false,
+          headless: true,
           defaultViewport: null,
           executablePath: chromePaths?.chrome || null,
           args: [
@@ -119,7 +119,7 @@ export default function html2jcr() {
 
         fs.writeFileSync(jcrPath, importTransformResult.jcr);
 
-        logger.debug(`imported page saved to xml file ${jcrPath}.xml`);
+        logger.debug(`imported page saved to xml file ${jcrPath}`);
 
         // console.log(importTransformResult);
         // await AEMBulk.Time.sleep(1000000);
