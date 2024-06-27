@@ -15,7 +15,7 @@ import serveStatic from 'serve-static';
 import fs from 'fs';
 import path from 'path';
 import { CommonCommandHandler, withCustomCLIParameters } from '../../src/cli.js';
-import { getLogger } from '../../src/logger.js';
+import chromePaths from 'chrome-paths';
 
 const LOCAL_HTTP_HOST = 'http://localhost:8888';
 const HELIX_IMPORTER_HTML2JCR_SCRIPT = '../../vendors/helix-importer-html2jcr.js';
@@ -48,6 +48,12 @@ export default function html2jcr() {
           describe: 'Folder containing HTML files',
           default: 'html',
           type: 'string',
+        })
+        .option('output-folder', {
+          alias: 'outputFolder',
+          describe: 'target folder for jcr xml files',
+          default: 'jcr',
+          type: 'string',
         });
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
@@ -62,10 +68,18 @@ export default function html2jcr() {
         const url = new URL(argv.url);
         const localURL = `${LOCAL_HTTP_HOST}${url.pathname}`;
 
-        logger.debug(`handler - minimal css start for url ${argv.url}`);
+        logger.debug(`handler - html2jcr start for url ${argv.url}`);
 
         [browser, page] = await AEMBulk.Puppeteer.initBrowser({
           headless: false,
+          defaultViewport: null,
+          executablePath: chromePaths?.chrome || null,
+          args: [
+            '--disable-web-security',
+            '--remote-allow-origins=*',
+            '--no-sandbox',
+            '--no-default-browser-check',
+          ],
         });
 
         await page.goto(localURL, { waitUntil: 'networkidle0' });
@@ -98,7 +112,7 @@ export default function html2jcr() {
           /* eslint-enable */
         }, url);
 
-        const jcrPath = path.join(argv.htmlFolder, `${importTransformResult.path}.xml`);
+        const jcrPath = path.join(argv.outputFolder, `${importTransformResult.path}.xml`);
         if (!fs.existsSync(path.dirname(jcrPath))) {
           fs.mkdirSync(path.dirname(jcrPath), { recursive: true });
         }
