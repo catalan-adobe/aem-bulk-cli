@@ -9,44 +9,45 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-import cors from 'cors';
-import express from 'express';
-import serveStatic from 'serve-static';
 import fs from 'fs';
 import path from 'path';
 import { CommonCommandHandler, withCustomCLIParameters } from '../../src/cli.js';
 import chromePaths from 'chrome-paths';
 
-const LOCAL_HTTP_HOST = 'http://localhost:8888';
 const HELIX_IMPORTER_HTML2JCR_SCRIPT = '../../vendors/helix-importer-html2jcr.js';
 
-async function startHTTPServer(htmlPath = null) {
-  const app = express();
-  app.use(cors());
-  app.use(serveStatic(htmlPath));
-
-  return app.listen(8888, { index: true });
-}
+const loadComponents = async (componentsPath) => {
+  const components = {};
+  if (componentsPath) {
+    try {
+      components.componentModels = JSON.parse(fs.readFileSync(`${componentsPath}/component-models.json`, 'utf-8'));
+      components.componentDefinition = JSON.parse(fs.readFileSync(`${componentsPath}/component-definition.json`, 'utf-8'));
+      components.filters = JSON.parse(fs.readFileSync(`${componentsPath}/component-filters.json`, 'utf-8'));
+    } catch (e) {
+      throw new Error(`Failed to read a component json file: ${e}`);
+    }
+  }
+  return components;
+};
 
 /**
  * main
  */
 
-export default function html2jcr() {
+export default function md2jcr() {
   return {
-    command: 'html2jcr',
-    describe: 'Convert HTML to JCR XML',
+    command: 'md2jcr',
+    describe: 'Convert Markdown to JCR XML',
     builder: (yargs) => {
       withCustomCLIParameters(yargs, { inputs: false, workers: false })
-        .option('url', {
-          describe: 'URL to convert',
-          demandOption: true,
+        .option('md-file', {
+          alias: 'mdFile',
+          describe: 'Path to the Markdown file to convert',
           type: 'string',
         })
-        .option('html-folder', {
-          alias: 'htmlFolder',
-          describe: 'Folder containing HTML files',
-          default: 'html',
+        .option('components-path', {
+          alias: 'componentsPath',
+          describe: 'Path to components json files',
           type: 'string',
         })
         .option('output-folder', {
@@ -59,16 +60,11 @@ export default function html2jcr() {
     handler: (new CommonCommandHandler()).withHandler(async ({
       argv, logger, AEMBulk,
     }) => {
-      // start http server serving the html folder
-      const httpServer = await startHTTPServer(argv.htmlFolder);
       let browser;
       let page;
 
       try {
-        const url = new URL(argv.url);
-        const localURL = `${LOCAL_HTTP_HOST}${url.pathname}`;
-
-        logger.debug(`handler - html2jcr start for url ${argv.url}`);
+        logger.debug(`handler - md2jcr start for url ${argv.url}`);
 
         [browser, page] = await AEMBulk.Puppeteer.initBrowser({
           headless: true,
@@ -82,27 +78,27 @@ export default function html2jcr() {
           ],
         });
 
-        await page.goto(localURL, { waitUntil: 'networkidle0' });
+        // read md file content
+        const mdContent = fs.readFileSync(argv.mdFile, 'utf-8');
+        console.log('mdContent', mdContent);
+
+        // load components
+        const components = await loadComponents(argv.componentsPath);
+        console.log('components', components);
 
         // inject helix-import library script
         // will provide WebImporter.html2docx function in browser context
         const js = fs.readFileSync(path.join(import.meta.dirname, HELIX_IMPORTER_HTML2JCR_SCRIPT), 'utf-8');
         await page.evaluate(js);
 
-        // const importScriptURL = customImportScriptPath
-        //   ? `http://localhost:8888/${path.basename(customImportScriptPath)}`
-        //   : DEFAULT_IMPORT_SCRIPT_URL;
-
-        const importTransformResult = await page.evaluate(async (originalURL) => {
+        const importTransformResult = await page.evaluate(async (md, comps) => {
           /* eslint-disable */
           // code executed in the browser context
 
           // execute default import script
-          const out = await WebImporter.html2jcr(
-            location.href,
-            document,
-            null,
-            { originalURL, toDocx: false, toMd: false, toJcr: true }
+          const out = await WebImporter.md2jcr(
+            md,
+            comps,
           );
 
           console.log('out', out);
@@ -110,28 +106,24 @@ export default function html2jcr() {
           // return the md content
           return out;
           /* eslint-enable */
-        }, url);
+        }, mdContent, components);
 
-        const jcrPath = path.join(argv.outputFolder, `${importTransformResult.path}.xml`);
+        console.log(importTransformResult);
+
+        const jcrPath = path.join(argv.outputFolder, `${path.dirname(argv.mdFile)}/${path.basename(argv.mdFile, '.md')}.xml`);
         if (!fs.existsSync(path.dirname(jcrPath))) {
           fs.mkdirSync(path.dirname(jcrPath), { recursive: true });
         }
 
-        fs.writeFileSync(jcrPath, importTransformResult.jcr);
+        fs.writeFileSync(jcrPath, importTransformResult);
 
         logger.debug(`imported page saved to xml file ${jcrPath}`);
-
-        // console.log(importTransformResult);
-        // await AEMBulk.Time.sleep(1000000);
       } catch (e) {
         logger.error(`html2jcr error: ${e.message} ${e.stack}`);
       } finally {
         if (browser) {
           await browser.close();
         }
-
-        // stop http server
-        await httpServer.close();
       }
     }),
   };
