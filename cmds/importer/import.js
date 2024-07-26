@@ -25,7 +25,6 @@ import { getLogger } from '../../src/logger.js';
 import { md2jcr } from '../../vendors/helix-importer-md2jcr.js';
 
 const loadComponents = async (componentsPath) => {
-  console.log('componentsPath', componentsPath);
   const components = {};
   if (componentsPath) {
     try {
@@ -168,7 +167,6 @@ async function importPage(
     /* eslint-enable */
   }, url, importScriptURL);
 
-  console.log('importTransformResult', importTransformResult);
   const files = Array.isArray(importTransformResult)
     ? importTransformResult
     : [importTransformResult];
@@ -203,7 +201,6 @@ async function importPage(
     } else if (saveAs === IMPORT_FORMATS.JCR) {
       // load components
       const components = await loadComponents(componentsPath);
-      console.log('components', components);
 
       const jcr = await md2jcr(file.md, components);
       // save jcr file
