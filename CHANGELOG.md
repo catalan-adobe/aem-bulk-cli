@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.14.1...v1.15.0) (2024-07-26)
+
+
+### Features
+
+* **import:** enable import to JCR ([#79](https://github.com/catalan-adobe/aem-bulk-cli/issues/79)) ([4c6185e](https://github.com/catalan-adobe/aem-bulk-cli/commit/4c6185e1c1bb0b459e3b7c73a1be4d44207c5bfd))
+
 ## [1.14.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.14.0...v1.14.1) (2024-07-13)
 
 
