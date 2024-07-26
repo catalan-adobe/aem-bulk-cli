@@ -22,25 +22,27 @@ import sharp from 'sharp';
 import { ExcelWriter } from '../../src/excel.js';
 import { CommonCommandHandler, readLines, withCustomCLIParameters } from '../../src/cli.js';
 import { getLogger } from '../../src/logger.js';
+import { md2jcr } from '../../vendors/helix-importer-md2jcr.js';
+
+const loadComponents = async (componentsPath) => {
+  const components = {};
+  if (componentsPath) {
+    try {
+      components.componentModels = JSON.parse(fs.readFileSync(`${componentsPath}/component-models.json`, 'utf-8'));
+      components.componentDefinition = JSON.parse(fs.readFileSync(`${componentsPath}/component-definition.json`, 'utf-8'));
+      components.filters = JSON.parse(fs.readFileSync(`${componentsPath}/component-filters.json`, 'utf-8'));
+    } catch (e) {
+      throw new Error(`Failed to read a component json file: ${e}`);
+    }
+  }
+  return components;
+};
 
 const DEFAULT_IMPORT_SCRIPT_URL = 'http://localhost:8888/defaults/import-script.js';
 
 const IMPORT_FORMATS = {
   DOCX: 'docx',
   JCR: 'jcr',
-};
-
-const IMPORT_FORMATS_MAPPING = {
-  DOCX: {
-    script: '../../vendors/helix-importer.js',
-    transformFnName: 'html2md',
-    ext: 'docx',
-  },
-  JCR: {
-    script: '../../vendors/helix-importer-html2jcr.js',
-    transformFnName: 'html2jcr',
-    ext: 'xml',
-  },
 };
 
 /**
@@ -131,20 +133,26 @@ function getImage2PngFunction(imageCache) {
   };
 }
 
-async function importPage(page, url, saveAs, customImportScriptPath, pageImages, logger) {
-  const saveAsKey = Object.entries(IMPORT_FORMATS).find(([, v]) => v === saveAs)[0];
-  const { script, transformFnName, ext } = IMPORT_FORMATS_MAPPING[saveAsKey];
-
+async function importPage(
+  page,
+  url,
+  saveAs,
+  componentsPath,
+  customImportScriptPath,
+  pageImages,
+  logger,
+) {
   // inject helix-import library script
   // will provide WebImporter.html2docx function in browser context
-  const js = fs.readFileSync(path.join(import.meta.dirname, script), 'utf-8');
-  await page.evaluate(js);
+  const js = fs.readFileSync(path.join(import.meta.dirname, '../../vendors/helix-importer.js'), 'utf-8');
+  await page.evaluateOnNewDocument(js);
+  await page.reload();
 
   const importScriptURL = customImportScriptPath
     ? `http://localhost:8888/${path.basename(customImportScriptPath)}`
     : DEFAULT_IMPORT_SCRIPT_URL;
 
-  const importTransformResult = await page.evaluate(async (originalURL, importScript, fn) => {
+  const importTransformResult = await page.evaluate(async (originalURL, importScript) => {
     /* eslint-disable */
     // code executed in the browser context
 
@@ -152,12 +160,12 @@ async function importPage(page, url, saveAs, customImportScriptPath, pageImages,
     const customTransformConfig = await import(importScript);
     
     // execute default import script
-    const out = await WebImporter[fn](location.href, document, customTransformConfig.default, { originalURL, toDocx: false, toMd: true });
+    const out = await WebImporter.html2md(location.href, document, customTransformConfig.default, { originalURL, toDocx: false, toMd: true });
 
     // return the md content
     return out;
     /* eslint-enable */
-  }, url, importScriptURL, transformFnName);
+  }, url, importScriptURL);
 
   const files = Array.isArray(importTransformResult)
     ? importTransformResult
@@ -191,20 +199,24 @@ async function importPage(page, url, saveAs, customImportScriptPath, pageImages,
 
       logger.debug(`imported page saved to docx file ${docxPath}.docx`);
     } else if (saveAs === IMPORT_FORMATS.JCR) {
+      // load components
+      const components = await loadComponents(componentsPath);
+
+      const jcr = await md2jcr(file.md, components);
       // save jcr file
       const jcrPath = path.resolve(path.join('jcr', file.path));
       if (!fs.existsSync(path.dirname(jcrPath))) {
         fs.mkdirSync(path.dirname(jcrPath), { recursive: true });
       }
 
-      fs.writeFileSync(`${jcrPath}.xml`, file.jcr);
+      fs.writeFileSync(`${jcrPath}.xml`, jcr);
 
       logger.debug(`imported page saved to xml file ${jcrPath}.xml`);
     }
 
     filenames.push({
       path: file.path.replace(/\/index$/, '/'),
-      filename: `${file.path}.${ext}`,
+      filename: `${file.path}.${IMPORT_FORMATS.DOCX ? 'docx' : 'xml'}`,
     });
   }
   return filenames;
@@ -226,6 +238,7 @@ async function importWorker({
       AEMBulk,
       options: {
         saveAs,
+        componentsPath,
         pacingDelay,
         pageTimeout,
         disableJs,
@@ -327,6 +340,7 @@ async function importWorker({
             page,
             url,
             saveAs,
+            componentsPath,
             customImportScriptPath,
             pageImages,
             logger,
@@ -380,6 +394,10 @@ export default function importCmd() {
           choices: Object.values(IMPORT_FORMATS),
           default: 'docx',
         })
+        .option('components-path', {
+          alias: 'componentsPath',
+          describe: '(JCR only) Path to crosswalk components json files',
+        })
         .option('page-timeout', {
           alias: 'pageTimeout',
           describe: 'Timeout in milliseconds for each page load',
@@ -403,7 +421,7 @@ export default function importCmd() {
           default: 'import-report.xlsx',
           type: 'string',
         })
-        .group(['import-script-path', 'custom-header', 'disable-js', 'pacing-delay', 'retries', 'excel-report'], 'Import Options:')
+        .group(['import-script-path', 'custom-header', 'disable-js', 'save-as', 'components-path', 'pacing-delay', 'retries', 'page-timeout', 'excel-report'], 'Import Options:')
         .help();
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
@@ -469,6 +487,7 @@ export default function importCmd() {
           options: {
             pptrCluster,
             saveAs: argv.saveAs,
+            componentsPath: argv.componentsPath,
             pacingDelay: argv.pacingDelay,
             pageTimeout: argv.pageTimeout,
             disableJs: argv.disableJs,
