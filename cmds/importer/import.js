@@ -146,7 +146,8 @@ async function importPage(
   // inject helix-import library script
   // will provide WebImporter.html2docx function in browser context
   const js = fs.readFileSync(path.join(import.meta.dirname, '../../vendors/helix-importer.js'), 'utf-8');
-  await page.evaluate(js);
+  await page.evaluateOnNewDocument(js);
+  await page.reload();
 
   const importScriptURL = customImportScriptPath
     ? `http://localhost:8888/${path.basename(customImportScriptPath)}`
