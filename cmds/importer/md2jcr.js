@@ -56,23 +56,19 @@ export default function md2jcrCLI() {
         });
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
-      argv, logger, AEMBulk,
+      argv, logger,
     }) => {
       try {
         logger.debug(`handler - md2jcr start for url ${argv.url}`);
 
         // read md file content
         const mdContent = fs.readFileSync(argv.mdFile, 'utf-8');
-        console.log('mdContent', mdContent);
 
         // load components
         const components = await loadComponents(argv.componentsPath);
-        console.log('components', components);
 
         // convert md to jcr
         const importTransformResult = await md2jcr(mdContent, components);
-
-        console.log(importTransformResult);
 
         const jcrPath = path.join(argv.outputFolder, `${path.dirname(argv.mdFile)}/${path.basename(argv.mdFile, '.md')}.xml`);
         if (!fs.existsSync(path.dirname(jcrPath))) {
