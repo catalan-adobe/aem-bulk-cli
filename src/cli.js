@@ -9,8 +9,21 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+import fs from 'fs';
 import readline from 'readline';
 import { getLogger } from './logger.js';
+
+function cleanupCLIArgs(argv) {
+  const args = { ...argv };
+  Object.keys(args).forEach((key) => {
+    if (key.includes('-')) {
+      delete args[key];
+    }
+  });
+  delete args.$0;
+  delete args._;
+  return args;
+}
 
 export async function readLines(breaker = '', msg = '') {
   const rl = readline.createInterface({
@@ -45,20 +58,15 @@ export async function readLines(breaker = '', msg = '') {
 }
 
 export class CommonCommandHandler {
-  #argv;
-
   #logger;
 
   #urls;
 
   constructor(argv, logger) {
-    this.#argv = argv;
+    this.argv = argv;
     this.#logger = logger;
     this.#urls = [];
-  }
-
-  get argv() {
-    return this.#argv;
+    this._vvv = 'test';
   }
 
   get logger() {
@@ -80,7 +88,16 @@ export class CommonCommandHandler {
   // eslint-disable-next-line class-methods-use-this
   withHandler(cmdFn) {
     return async function h(argv) {
+      const gracefulShutdown = function shutdownHandler() {
+        process.exit(0);
+      };
+      process.once('SIGTERM', gracefulShutdown);
+      process.once('SIGINT', gracefulShutdown);
+      process.once('exit', gracefulShutdown);
+
       try {
+        fs.writeFileSync(`aem-bulk_${argv._.join('_')}_${new Date().toISOString().split('.')[0].replaceAll(':', '')}.config.json`, JSON.stringify(cleanupCLIArgs(argv), null, 2));
+
         const cmdCommand = argv._ ? argv._.join('_>_') : 'unknown';
         this.logger = getLogger(cmdCommand, {
           level: argv.logLevel,
@@ -110,6 +127,8 @@ export class CommonCommandHandler {
           logger: this.logger,
           AEMBulk: await import('franklin-bulk-shared'),
         });
+      } catch (e) {
+        this.logger.error(e);
       } finally {
         this.logger.debug('cli handler done');
       }
