@@ -27,6 +27,7 @@ export default function importer() {
           (await import('./md2jcr.js')).default(),
           (await import('./import.js')).default(),
           (await import('./minimal-css.js')).default(),
+          (await import('./aem-boilerplate-css.js')).default(),
         ])
         .demandCommand(1, '')
         .help();

@@ -471,13 +471,13 @@ export default function importCmd() {
 
       // init puppeteer cluster
       const pptrCluster = await AEMBulk.Puppeteer.initBrowserCluster(
-        argv.workers,
         {
           headless: true,
           disableJS: argv.disableJs,
           pageTimeout: argv.pageTimeout,
           extraArgs: ['--no-sandbox', '--disable-setuid-sandbox', '--remote-allow-origins=*', '--disable-web-security'],
         },
+        argv.workers,
       );
 
       // init queue
