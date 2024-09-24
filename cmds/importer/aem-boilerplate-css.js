@@ -86,18 +86,56 @@ export default function aemBoilerplateCSSCmd() {
           headless: true,
           adBlocker: true,
           gdprBlocker: true,
-          devTools: true,
+          devTools: false,
         });
 
         await page.goto(url.href, { waitUntil: 'networkidle2' });
 
-        const extractedStyles = await AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(page, { logger: getLogger('frk-bulk-shared/css/extractMinimalCSS') });
+        const extractedStyles = await AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(page);
 
+        // console.log(`
+        //   /*
+        //     Main fonts sets:
+        //     Adapt variables in styles/styles.css:
+        //   */
+          
+        //   --body-font-family: ${extractedStyles.bodyFontFamilySet};
+        //   --heading-font-family: ${extractedStyles.headingFontFamilySet};
+          
+        //   /*
+        //     Fonts Definitions
+        //     Adapt styles/fonts.css:
+        //     (Do not to forget to add the generated font files (under ./fonts folder) into the Github repository)
+        //   */
+          
+        //   ${extractedStyles.fontFaces}
+          
+        //   /*
+        //     Fonts Fallbacks
+        //     Adapt styles/fonts.css:
+        //     (Do not to forget to add the fallback font to the --body-font-family and --heading-font-family variables)
+        //   */
+          
+        //   ${extractedStyles.fontFBFaces}
+          
+        //   /*
+        //     Heading Sizes
+        //     Adapt variables in styles/styles.css:
+        //   */
+          
+        //   `);
+          
         /**
          * following code uses AST for parsing and updating the CSS
          */
 
         /*
+        const extractedStyles = await
+          AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(
+            page,
+            { logger: getLogger('frk-bulk-shared/css/extractMinimalCSS') },
+          );
+
         // read css file
         const css = fs.readFileSync(cssStylesFile, 'utf8');
 
@@ -201,6 +239,7 @@ export default function aemBoilerplateCSSCmd() {
         }
         */
       } catch (e) {
+        console.error(e);
         logger.error(`minimal css error: ${e.message} ${e.stack}`);
       } finally {
         if (browser) {
