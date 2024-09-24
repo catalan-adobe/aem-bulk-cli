@@ -14,7 +14,6 @@ import fs from 'fs';
 // import cssbeautify from 'cssbeautify';
 // import beautify from 'simply-beautiful';
 import path from 'path';
-import { getLogger } from '../../src/logger.js';
 import { CommonCommandHandler, withCustomCLIParameters } from '../../src/cli.js';
 
 // const fontFieldsMapping = [
@@ -91,40 +90,8 @@ export default function aemBoilerplateCSSCmd() {
 
         await page.goto(url.href, { waitUntil: 'networkidle2' });
 
-        const extractedStyles = await AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(page);
+        await AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(page);
 
-        // console.log(`
-        //   /*
-        //     Main fonts sets:
-        //     Adapt variables in styles/styles.css:
-        //   */
-          
-        //   --body-font-family: ${extractedStyles.bodyFontFamilySet};
-        //   --heading-font-family: ${extractedStyles.headingFontFamilySet};
-          
-        //   /*
-        //     Fonts Definitions
-        //     Adapt styles/fonts.css:
-        //     (Do not to forget to add the generated font files (under ./fonts folder) into the Github repository)
-        //   */
-          
-        //   ${extractedStyles.fontFaces}
-          
-        //   /*
-        //     Fonts Fallbacks
-        //     Adapt styles/fonts.css:
-        //     (Do not to forget to add the fallback font to the --body-font-family and --heading-font-family variables)
-        //   */
-          
-        //   ${extractedStyles.fontFBFaces}
-          
-        //   /*
-        //     Heading Sizes
-        //     Adapt variables in styles/styles.css:
-        //   */
-          
-        //   `);
-          
         /**
          * following code uses AST for parsing and updating the CSS
          */
@@ -133,7 +100,6 @@ export default function aemBoilerplateCSSCmd() {
         const extractedStyles = await
           AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(
             page,
-            { logger: getLogger('frk-bulk-shared/css/extractMinimalCSS') },
           );
 
         // read css file
@@ -239,7 +205,6 @@ export default function aemBoilerplateCSSCmd() {
         }
         */
       } catch (e) {
-        console.error(e);
         logger.error(`minimal css error: ${e.message} ${e.stack}`);
       } finally {
         if (browser) {
