@@ -150,10 +150,12 @@ export default function aemBoilerplateCSSCmd() {
               if (!this.atrule && this.rule) {
                 console.log(node);
                 console.log('=============================================================');
+                // eslint-disable-next-line no-param-reassign
                 node.value = csstree.parse(extractedStyles.headingFontSizes[sizeLabel].mobile);
               } else if (this.atrule && this.rule) {
                 console.log(node);
                 console.log('=============================================================');
+                // eslint-disable-next-line no-param-reassign
                 node.value = csstree.parse(extractedStyles.headingFontSizes[sizeLabel].desktop);
               }
             }
