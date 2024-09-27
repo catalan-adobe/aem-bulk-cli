@@ -10,9 +10,9 @@
  * governing permissions and limitations under the License.
  */
 import fs from 'fs';
-// import * as csstree from 'css-tree';
-// import cssbeautify from 'cssbeautify';
-// import beautify from 'simply-beautiful';
+import * as csstree from 'css-tree';
+import cssbeautify from 'cssbeautify';
+import beautify from 'simply-beautiful';
 import path from 'path';
 import { CommonCommandHandler, withCustomCLIParameters } from '../../src/cli.js';
 
@@ -90,23 +90,21 @@ export default function aemBoilerplateCSSCmd() {
 
         await page.goto(url.href, { waitUntil: 'networkidle2' });
 
-        await AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(page);
+        const extractedStyles = await
+        AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(
+          page,
+        );
 
         /**
          * following code uses AST for parsing and updating the CSS
          */
 
-        /*
-        const extractedStyles = await
-          AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(
-            page,
-          );
-
         // read css file
         const css = fs.readFileSync(cssStylesFile, 'utf8');
+        const cssWithComments = css.replace(/\/\*/g, '/*!');
 
         // simple parsing with no options
-        const ast = csstree.parse(css, {
+        const ast = csstree.parse(cssWithComments, {
           positions: true,
         });
 
@@ -115,7 +113,13 @@ export default function aemBoilerplateCSSCmd() {
           (node) => node.type === 'Declaration' && node.property === '--body-font-family',
         );
         if (bodyfontFamilyDeclaration) {
-          bodyfontFamilyDeclaration.value = csstree.parse(extractedStyles.bodyFontFamilySet);
+          bodyfontFamilyDeclaration.value = csstree.parse(extractedStyles.bodyFontFamilySet
+            .split(',')
+            .map((f) => `${f.replace(/"/g, '').replace(/'/g, '').trim().replace(/[^a-z0-9]/gi, '-')}`)
+            .flatMap((f) => {
+              const fallback = extractedStyles.fontFBFaces.find((fb) => `${fb.fontFamily.replace(/[^a-z0-9]/gi, '-')}` === f);
+              return fallback ? [`${f.toLowerCase()}`, `${fallback.fontFamily.toLowerCase()}-fallback`] : [`${f.toLowerCase()}`];
+            }).join(','));
         }
 
         const headingfontFamilyDeclaration = csstree.find(
@@ -123,11 +127,18 @@ export default function aemBoilerplateCSSCmd() {
           (node) => node.type === 'Declaration' && node.property === '--heading-font-family',
         );
         if (headingfontFamilyDeclaration) {
-          headingfontFamilyDeclaration.value = csstree.parse(extractedStyles.headingFontFamilySet);
+          headingfontFamilyDeclaration.value = csstree.parse(extractedStyles.headingFontFamilySet
+            .split(',')
+            .map((f) => `${f.replace(/"/g, '').replace(/'/g, '').trim().replace(/[^a-z0-9]/gi, '-')}`)
+            .flatMap((f) => {
+              const fallback = extractedStyles.fontFBFaces.find((fb) => `${fb.fontFamily.replace(/[^a-z0-9]/gi, '-')}` === f);
+              return fallback ? [`${f.toLowerCase()}`, `${fallback.fontFamily.toLowerCase()}-fallback`] : [`${f.toLowerCase()}`];
+            }).join(','));
         }
 
+        let fontsFound = false;
         csstree.walk(ast, {
-          enter: function e(node, item, list) {
+          enter: (node, item, list) => {
             if (
               node.type === 'Declaration'
               && (
@@ -138,72 +149,102 @@ export default function aemBoilerplateCSSCmd() {
               const sizeLabel = node.property.split('-').pop();
               if (!this.atrule && this.rule) {
                 console.log(node);
-                console.log("=============================================================");
+                console.log('=============================================================');
                 node.value = csstree.parse(extractedStyles.headingFontSizes[sizeLabel].mobile);
               } else if (this.atrule && this.rule) {
                 console.log(node);
-                console.log("=============================================================");
+                console.log('=============================================================');
                 node.value = csstree.parse(extractedStyles.headingFontSizes[sizeLabel].desktop);
               }
             }
-
             // remove default fallback fonts
             if (node.type === 'Atrule' && node.name === 'font-face') {
-              const nff = csstree.parse(`
-  @font-face {
-    font-family: qwer-asdf-fallback;
-    size-adjust: 66.6%;
-    src: local('Arial');
-  }
-                `);
+              if (!fontsFound) {
+                fontsFound = true;
 
-              // console.log(nff);
-              console.log(JSON.stringify(csstree.toPlainObject(nff.children.first), null, 2));
-              // ast.children.push(nff);
-              // list.insert(csstree.List.createItem(csstree.toPlainObject(nff.children.first)));
-              // list.insert(csstree.List.createItem({
-              //   type: 'Raw',
-              //   value: '\n',
-              // }));
+                extractedStyles.fontFBFaces.forEach((fb) => {
+                  const newNode = csstree.parse(`@font-face {
+                    font-family: ${fb.fontFamily.toLowerCase()}-fallback;
+                    font-style: ${fb.fontStyle};
+                    font-weight: ${fb.fontWeight};
+                    src: local('${fb.fallbackFont}');
+                    ascent-override: ${fb.ascentOverride};
+                    descent-override: ${fb.descentOverride};
+                    line-gap-override: ${fb.lineGapOverride};
+                    size-adjust: ${fb.sizeAdjust};
+                  }
+                  `).children.first;
+                  list.insertData(newNode, item);
+                });
+              }
               list.remove(item);
             }
           },
         });
 
-        ast.children.push(csstree.parse(`
-  @font-face {
-    font-family: qwer-asdf-fallback;
-    size-adjust: 66.6%;
-    src: local('Arial');
-  }
-                `).children.first);
-
-        // walk the tree
-        console.log(JSON.stringify(csstree.toPlainObject(ast), null, 2));
+        if (!fontsFound) {
+          extractedStyles.fontFBFaces.forEach((fb) => {
+            const newNode = csstree.parse(`@font-face {
+              font-family: ${fb.fontFamily.toLowerCase()}-fallback;
+              font-style: ${fb.fontStyle};
+              font-weight: ${fb.fontWeight};
+              src: local('${fb.fallbackFont}');
+              ascent-override: ${fb.ascentOverride};
+              descent-override: ${fb.descentOverride};
+              line-gap-override: ${fb.lineGapOverride};
+              size-adjust: ${fb.sizeAdjust};
+            }
+            `).children.first;
+            ast.children.push(newNode);
+          });
+        }
 
         const cssRaw = csstree.generate(ast);
         const cssFinal2 = beautify.css(cssRaw, {
           indent_size: 2,
-          // space_before_conditional: true,
-          // jslint_happy: true,
           max_char: 0,
         });
         const cssFinal = cssbeautify(cssFinal2, {
           indent: '  ',
-          autosemicolon: false,
+          autosemicolon: true,
         });
-        console.log(cssFinal);
+        console.log(cssFinal.replace(/\/\*!/g, '\n/*'));
 
-        // await AEMBulk.Puppeteer.smartScroll(page, { postReset: true });
+        console.log('=============================================================');
+        extractedStyles.fontFaces.forEach((font) => {
+          console.log(`@font-face {
+            font-family: ${font.fontFamily.replace(/[^a-z0-9]/gi, '-').toLowerCase()};
+            src: ${font.src};
+            font-weight: ${font.fontWeight};
+            font-style: ${font.fontStyle};
+            font-display: swap;
+            unicode-range: ${font.unicodeRange};
+          }
 
-        // await AEMBulk.Time.sleep(2000);
+          `);
+        });
+        fs.writeFileSync(cssStylesFile, cssFinal.replace(/\/\*!/g, '\n/*'));
+        fs.writeFileSync(cssFontsFile, extractedStyles.fontFaces.map(
+          (font) => `@font-face {
+            font-family: ${font.fontFamily.replace(/[^a-z0-9]/gi, '-').toLowerCase()};
+            src: ${font.src};
+            font-weight: ${font.fontWeight};
+            font-style: ${font.fontStyle};
+            font-display: swap;
+            unicode-range: ${font.unicodeRange};
+          }
 
-        console.log(extractedStyles);
-        if (extractedStyles.string) {
-          fs.writeFileSync(argv.cssFile, extractedStyles.string);
-          logger.info(`Minimal CSS saved to ${argv.cssFile}`);
-        }
-        */
+        `,
+        ).join(''));
+        extractedStyles.fontFaces.forEach((font) => {
+          const fileName = path.basename(font.location);
+          const fontFile = path.join(fontsFolder, fileName);
+          if (!fs.existsSync(fontFile)) {
+            fs.copyFileSync(font.location, fontFile);
+          }
+        });
+
+        logger.info(`Minimal CSS saved to ${cssStylesFile} and fonts to ${fontsFolder}`);
       } catch (e) {
         logger.error(`minimal css error: ${e.message} ${e.stack}`);
       } finally {
