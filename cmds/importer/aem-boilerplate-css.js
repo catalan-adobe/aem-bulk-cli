@@ -16,6 +16,36 @@ import beautify from 'simply-beautiful';
 import path from 'path';
 import { CommonCommandHandler, withCustomCLIParameters } from '../../src/cli.js';
 
+function getFontDeclaration(fontFamilySet, fontFaces) {
+  let fonts = '';
+  let sep = '';
+  let fallbacks = '';
+  let fallbackSep = '';
+  fontFamilySet.split(',').map((f) => f
+    .trim()
+    .replace(/"$/g, '')
+    .replace(/^"/g, '')
+    .replace(/'$/g, '')
+    .replace(/^'/g, '')
+    .trim()).forEach((f) => {
+    if (fontFaces.find((ff) => ff.fontFamily === f)) {
+      fallbacks += `${fallbackSep}"${f} Fallback"`;
+      fallbackSep = ',';
+    } else if (fallbacks !== '') {
+      fonts += `${sep}${fallbacks}`;
+      sep = ',';
+      fallbacks = '';
+      fallbackSep = '';
+    }
+    fonts += `${sep}"${f}"`;
+    sep = ',';
+  });
+  if (fallbacks !== '') {
+    fonts += `${sep}${fallbacks}`;
+  }
+  return fonts;
+}
+
 /**
  * main
  */
@@ -97,13 +127,12 @@ export default function aemBoilerplateCSSCmd() {
           (node) => node.type === 'Declaration' && node.property === '--body-font-family',
         );
         if (bodyfontFamilyDeclaration) {
-          bodyfontFamilyDeclaration.value = csstree.parse(extractedStyles.bodyFontFamilySet
-            .split(',')
-            .map((f) => `${f.replace(/"/g, '').replace(/'/g, '').trim().replace(/[^a-z0-9]/gi, '-')}`)
-            .flatMap((f) => {
-              const fallback = extractedStyles.fontFBFaces.find((fb) => `${fb.fontFamily.replace(/[^a-z0-9]/gi, '-')}` === f);
-              return fallback ? [`${f.toLowerCase()}`, `${fallback.fontFamily.toLowerCase()}-fallback`] : [`${f.toLowerCase()}`];
-            }).join(','));
+          bodyfontFamilyDeclaration.value = csstree.parse(
+            getFontDeclaration(
+              extractedStyles.bodyFontFamilySet,
+              extractedStyles.fontFaces,
+            ),
+          );
         }
 
         const headingfontFamilyDeclaration = csstree.find(
@@ -111,13 +140,12 @@ export default function aemBoilerplateCSSCmd() {
           (node) => node.type === 'Declaration' && node.property === '--heading-font-family',
         );
         if (headingfontFamilyDeclaration) {
-          headingfontFamilyDeclaration.value = csstree.parse(extractedStyles.headingFontFamilySet
-            .split(',')
-            .map((f) => `${f.replace(/"/g, '').replace(/'/g, '').trim().replace(/[^a-z0-9]/gi, '-')}`)
-            .flatMap((f) => {
-              const fallback = extractedStyles.fontFBFaces.find((fb) => `${fb.fontFamily.replace(/[^a-z0-9]/gi, '-')}` === f);
-              return fallback ? [`${f.toLowerCase()}`, `${fallback.fontFamily.toLowerCase()}-fallback`] : [`${f.toLowerCase()}`];
-            }).join(','));
+          headingfontFamilyDeclaration.value = csstree.parse(
+            getFontDeclaration(
+              extractedStyles.headingFontFamilySet,
+              extractedStyles.fontFaces,
+            ),
+          );
         }
 
         let fontsFound = false;
@@ -146,7 +174,7 @@ export default function aemBoilerplateCSSCmd() {
 
                 extractedStyles.fontFBFaces.forEach((fb) => {
                   const newNode = csstree.parse(`@font-face {
-                    font-family: ${fb.fontFamily.toLowerCase()}-fallback;
+                    font-family: "${fb.fontFamily} Fallback";
                     font-style: ${fb.fontStyle};
                     font-weight: ${fb.fontWeight};
                     src: local('${fb.fallbackFont}');
@@ -167,7 +195,7 @@ export default function aemBoilerplateCSSCmd() {
         if (!fontsFound) {
           extractedStyles.fontFBFaces.forEach((fb) => {
             const newNode = csstree.parse(`@font-face {
-              font-family: ${fb.fontFamily.toLowerCase()}-fallback;
+              font-family: "${fb.fontFamily} Fallback";
               font-style: ${fb.fontStyle};
               font-weight: ${fb.fontWeight};
               src: local('${fb.fallbackFont}');
@@ -193,7 +221,7 @@ export default function aemBoilerplateCSSCmd() {
         extractedStyles.fontFaces.forEach((font) => {
           console.log(`
 @font-face {
-  font-family: ${font.fontFamily.replace(/[^a-z0-9]/gi, '-').toLowerCase()};
+  font-family: ${font.fontFamily.includes(' ') ? `"${font.fontFamily}"` : font.fontFamily};
   src: ${font.src};
   font-weight: ${font.fontWeight};
   font-style: ${font.fontStyle};
@@ -203,10 +231,11 @@ export default function aemBoilerplateCSSCmd() {
 `);
         });
         fs.writeFileSync(cssStylesFile, cssFinal.replace(/\/\*!/g, '\n/*'));
-        fs.writeFileSync(cssFontsFile, extractedStyles.fontFaces.map(
-          (font) => `
+        fs.writeFileSync(cssFontsFile, extractedStyles.fontFaces.length > 0
+          ? extractedStyles.fontFaces.map(
+            (font) => `
 @font-face {
-  font-family: ${font.fontFamily.replace(/[^a-z0-9]/gi, '-').toLowerCase()};
+  font-family: ${font.fontFamily.includes(' ') ? `"${font.fontFamily}"` : font.fontFamily};
   src: ${font.src};
   font-weight: ${font.fontWeight};
   font-style: ${font.fontStyle};
@@ -214,7 +243,7 @@ export default function aemBoilerplateCSSCmd() {
   unicode-range: ${font.unicodeRange};
 }
 `,
-        ).join(''));
+          ).join('') : '/* no fonts found */');
         extractedStyles.fontFaces.forEach((font) => {
           const fileName = path.basename(font.location);
           const fontFile = path.join(fontsFolder, fileName);
