@@ -191,29 +191,29 @@ export default function aemBoilerplateCSSCmd() {
           autosemicolon: true,
         });
         extractedStyles.fontFaces.forEach((font) => {
-          console.log(`@font-face {
-            font-family: ${font.fontFamily.replace(/[^a-z0-9]/gi, '-').toLowerCase()};
-            src: ${font.src};
-            font-weight: ${font.fontWeight};
-            font-style: ${font.fontStyle};
-            font-display: swap;
-            unicode-range: ${font.unicodeRange};
-          }
-
-          `);
+          console.log(`
+@font-face {
+  font-family: ${font.fontFamily.replace(/[^a-z0-9]/gi, '-').toLowerCase()};
+  src: ${font.src};
+  font-weight: ${font.fontWeight};
+  font-style: ${font.fontStyle};
+  font-display: swap;
+  unicode-range: ${font.unicodeRange};
+}
+`);
         });
         fs.writeFileSync(cssStylesFile, cssFinal.replace(/\/\*!/g, '\n/*'));
         fs.writeFileSync(cssFontsFile, extractedStyles.fontFaces.map(
-          (font) => `@font-face {
-            font-family: ${font.fontFamily.replace(/[^a-z0-9]/gi, '-').toLowerCase()};
-            src: ${font.src};
-            font-weight: ${font.fontWeight};
-            font-style: ${font.fontStyle};
-            font-display: swap;
-            unicode-range: ${font.unicodeRange};
-          }
-
-        `,
+          (font) => `
+@font-face {
+  font-family: ${font.fontFamily.replace(/[^a-z0-9]/gi, '-').toLowerCase()};
+  src: ${font.src};
+  font-weight: ${font.fontWeight};
+  font-style: ${font.fontStyle};
+  font-display: swap;
+  unicode-range: ${font.unicodeRange};
+}
+`,
         ).join(''));
         extractedStyles.fontFaces.forEach((font) => {
           const fileName = path.basename(font.location);
