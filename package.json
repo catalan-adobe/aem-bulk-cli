@@ -1,6 +1,6 @@
 {
   "name": "aem-bulk",
-  "version": "1.15.2",
+  "version": "1.15.3",
   "description": "CLI for AEM Edge Delivery bulk operations ",
   "type": "module",
   "bin": "./index.js",
@@ -38,6 +38,6 @@
     "@semantic-release/git": "10.0.1",
     "@types/yargs": "17.0.33",
     "eslint": "8.57.0",
-    "semantic-release": "24.1.1"
+    "semantic-release": "24.1.2"
   }
 }
