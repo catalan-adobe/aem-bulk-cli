@@ -16,22 +16,6 @@ import beautify from 'simply-beautiful';
 import path from 'path';
 import { CommonCommandHandler, withCustomCLIParameters } from '../../src/cli.js';
 
-// const fontFieldsMapping = [
-//   ['ascent-override', 'ascentOverride'],
-//   ['descent-override', 'descentOverride'],
-//   ['font-display', 'fontDisplay'],
-//   ['font-family', 'fontFamily'],
-//   ['font-stretch', 'fontStretch'],
-//   ['font-style', 'fontStyle'],
-//   ['font-weight', 'fontWeight'],
-//   ['font-feature-settings', 'fontFeatureSettings'],
-//   ['font-variation-settings', 'fontVariationSettings'],
-//   ['line-gap-override', 'lineGapOverride'],
-//   ['size-adjust', 'sizeAdjust'],
-//   ['src', 'src'],
-//   ['unicode-range', 'unicodeRange'],
-// ];
-
 /**
  * main
  */
@@ -148,13 +132,9 @@ export default function aemBoilerplateCSSCmd() {
             ) {
               const sizeLabel = node.property.split('-').pop();
               if (!this.atrule && this.rule) {
-                console.log(node);
-                console.log('=============================================================');
                 // eslint-disable-next-line no-param-reassign
                 node.value = csstree.parse(extractedStyles.headingFontSizes[sizeLabel].mobile);
               } else if (this.atrule && this.rule) {
-                console.log(node);
-                console.log('=============================================================');
                 // eslint-disable-next-line no-param-reassign
                 node.value = csstree.parse(extractedStyles.headingFontSizes[sizeLabel].desktop);
               }
@@ -210,9 +190,6 @@ export default function aemBoilerplateCSSCmd() {
           indent: '  ',
           autosemicolon: true,
         });
-        console.log(cssFinal.replace(/\/\*!/g, '\n/*'));
-
-        console.log('=============================================================');
         extractedStyles.fontFaces.forEach((font) => {
           console.log(`@font-face {
             font-family: ${font.fontFamily.replace(/[^a-z0-9]/gi, '-').toLowerCase()};
