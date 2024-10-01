@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.15.3...v1.16.0) (2024-10-01)
+
+
+### Features
+
+* **importer:** add command to extract font information for a given page ([#86](https://github.com/catalan-adobe/aem-bulk-cli/issues/86)) ([9b4bc99](https://github.com/catalan-adobe/aem-bulk-cli/commit/9b4bc99249993071a0f7d04a778a3cff97a0b167))
+
 ## [1.15.3](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.15.2...v1.15.3) (2024-09-28)
 
 
