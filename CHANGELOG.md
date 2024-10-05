@@ -1,3 +1,10 @@
+## [1.16.2](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.16.1...v1.16.2) (2024-10-05)
+
+
+### Bug Fixes
+
+* **deps:** update dependency winston to v3.15.0 ([c07b802](https://github.com/catalan-adobe/aem-bulk-cli/commit/c07b802bd24c7877dc2ff4e0091d60b61d2aeaf3))
+
 ## [1.16.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.16.0...v1.16.1) (2024-10-03)
 
 
