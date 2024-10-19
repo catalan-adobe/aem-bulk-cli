@@ -1,3 +1,10 @@
+## [1.16.4](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.16.3...v1.16.4) (2024-10-19)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([9e9fbdf](https://github.com/catalan-adobe/aem-bulk-cli/commit/9e9fbdf7380386c2ad57daeb8de1ac933d22538d))
+
 ## [1.16.3](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.16.2...v1.16.3) (2024-10-12)
 
 
