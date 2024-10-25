@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.17.0...v1.17.1) (2024-10-25)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @adobe/helix-md2docx to v2.1.79 ([#92](https://github.com/catalan-adobe/aem-bulk-cli/issues/92)) ([f4aefc9](https://github.com/catalan-adobe/aem-bulk-cli/commit/f4aefc934168abf44dc43345cf4437c833c032cd))
+
 # [1.17.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.16.1...v1.17.0) (2024-10-25)
 
 
