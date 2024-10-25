@@ -79,6 +79,7 @@ export function getLogger(name, {
     );
   }
   if (level) {
+    l.level = level;
     for (const transport of l.transports) {
       transport.level = level;
     }
