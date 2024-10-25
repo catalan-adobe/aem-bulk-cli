@@ -51,27 +51,31 @@ export default function crawlCmd() {
           type: 'number',
           default: 10,
         })
-        .option('http-header', {
-          alias: 'httpHeader',
-          describe: 'HTTP header to send with the robots.txt/sitemaps requests (example: "User-Agent: Mozilla/5.0")',
-          type: 'array',
-          string: true,
+        .option('headers', {
+          describe: 'JSON file containing custom headers to include in the request',
+          type: 'string',
         })
         .option('limit', {
           describe: 'Limit max number of URLs to collect',
           type: 'number',
         })
-        .group(['origin', 'strategy', 'limit', 'inclusionFilter', 'exclusionFilter', 'timeout', 'httpHeader'], 'Crawl Options:')
+        .option('text-file-prefix', {
+          alias: 'textFilePrefix',
+          describe: 'Prefix name for all text generated text files (urls.all.txt, urls.valid.txt)',
+          default: 'urls',
+          type: 'string',
+        })
+        .option('json-file', {
+          alias: 'jsonFile',
+          describe: 'Path to json result file',
+          default: 'crawl.json',
+          type: 'string',
+        })
+        .group(['origin', 'strategy', 'limit', 'inclusionFilter', 'exclusionFilter', 'timeout', 'headers', 'textFilePrefix', 'jsonFile'], 'Crawl Options:')
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for the found URLs',
           default: 'crawl-report.xlsx',
-          type: 'string',
-        })
-        .option('text-file', {
-          alias: 'textFile',
-          describe: 'Path to text for the collected and valid URLs',
-          default: 'valid-urls.txt',
           type: 'string',
         });
     },
@@ -98,17 +102,23 @@ export default function crawlCmd() {
         filename: argv.excelReport,
         sheetName: 'crawl-report',
         writeEvery: 1,
-        headers: ['url', 'source url', 'status', 'path level 1', 'path level 2', 'path level 3', 'filename', 'search', 'message'],
+        headers: ['url', 'source url', 'status', 'path level 1', 'path level 2', 'path level 3', 'filename', 'search', 'language', 'message'],
         formatRowFn: (record) => Object.keys(record).map((k) => record[k] || ''),
       });
 
       // init urls file stream
       // create stream to save the list of discovered URLs
-      const textFile = path.isAbsolute(argv.textFile)
-        ? argv.textFile
-        : path.join(process.cwd(), argv.textFile);
-      if (!(await fs.existsSync(path.dirname(textFile)))) {
-        fs.mkdirSync(path.dirname(textFile), { recursive: true });
+      const textFilePrefix = path.isAbsolute(argv.textFilePrefix)
+        ? argv.textFilePrefix
+        : path.join(process.cwd(), argv.textFilePrefix);
+      if (!(await fs.existsSync(path.dirname(textFilePrefix)))) {
+        fs.mkdirSync(path.dirname(textFilePrefix), { recursive: true });
+      }
+      if (await fs.existsSync(`${textFilePrefix}.all.txt`)) {
+        fs.unlinkSync(`${textFilePrefix}.all.txt`);
+      }
+      if (await fs.existsSync(`${textFilePrefix}.valid.txt`)) {
+        fs.unlinkSync(`${textFilePrefix}.valid.txt`);
       }
 
       // url pattern check
@@ -136,17 +146,15 @@ export default function crawlCmd() {
         }
       });
 
-      // parse headers from argv
-      let headers = null;
-      if (argv.httpHeader) {
-        headers = {};
-        argv.httpHeader.forEach((h) => {
-          const [key, value] = h.split(':');
-          headers[key] = value;
-        });
+      // read custom headers
+      let headers = {};
+      if (argv.headers) {
+        try {
+          headers = JSON.parse(fs.readFileSync(argv.headers, 'utf-8'));
+        } catch (e) {
+          logger.warn(`Error reading headers file (${argv.headers}): ${e.message}`);
+        }
       }
-
-      const allURLs = [];
 
       const result = await AEMBulk.Web.crawl(
         origin,
@@ -160,18 +168,16 @@ export default function crawlCmd() {
           exclusionPatterns: argv.exclusionFilter || [],
           httpHeaders: headers,
           keepHash: false,
-          urlStreamFn: async (urls) => {
-            if (urls.length > 0) {
-              let newURLs = urls;
-              const validURLsNum = newURLs.filter((u) => u.status === 'valid').length + allURLs.filter((u) => u.status === 'valid').length;
-              if (argv.limit > 0 && validURLsNum >= argv.limit) {
-                const sliceIdx = argv.limit - allURLs.filter((u) => u.status === 'valid').length;
-                newURLs = newURLs.filter((u) => u.status === 'valid').slice(0, sliceIdx);
+          urlStreamFn: async (newCrawl) => {
+            if (newCrawl.length > 0) {
+              await excelReport.addRows(newCrawl);
+
+              // stream urls to text files
+              fs.appendFileSync(`${textFilePrefix}.all.txt`, newCrawl.map((u) => `${u.url}\n`).join(''), 'utf8');
+              const validURLs = newCrawl.filter((u) => u.status === 'valid');
+              if (validURLs.length > 0) {
+                fs.appendFileSync(`${textFilePrefix}.valid.txt`, validURLs.map((u) => `${u.url}\n`).join(''), 'utf8');
               }
-
-              allURLs.push(...newURLs);
-
-              await excelReport.addRows(newURLs);
             }
           },
         },
@@ -180,14 +186,12 @@ export default function crawlCmd() {
       // write/close excel report
       await excelReport.close();
 
-      fs.writeFileSync('result.json', JSON.stringify(result, null, 2));
-      fs.writeFileSync(textFile, result.urls.filter((u) => u.status === 'valid').map((u) => `${u.url}\n`).join(''), 'utf8');
+      fs.writeFileSync(argv.jsonFile, JSON.stringify(result, null, 2));
 
       // final log
-      const l = result.urls.length.toString().length;
       logger.info('Crawl completed:');
-      logger.info(`* ${result.urls.length} URL(s) discovered`);
-      logger.info(`* ${result.urls.filter((o) => o.status === 'valid').length.toString().padStart(l, ' ')} URL(s) valid (saved to ${textFile})`);
+      logger.info(`* ${result.urls.total} URL(s) discovered (saved to ${textFilePrefix}.all.txt)`);
+      logger.info(`* ${result.urls.valid} URL(s) valid (saved to ${textFilePrefix}.valid.txt)`);
     }),
   };
 }
