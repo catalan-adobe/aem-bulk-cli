@@ -21,6 +21,13 @@ const GOOGLE_API_ENV_KEY = 'AEM_BULK_LH_GOOGLE_API_KEY';
 const LH_CATEGORIES_KEYS = ['performance', 'accessibility', 'best-practices', 'seo'];
 const LH_AUDIT_KEYS = ['speed-index', 'first-contentful-paint', 'largest-contentful-paint', 'total-blocking-time', 'cumulative-layout-shift'];
 
+class LHError extends Error {
+  constructor(message, details) {
+    super(message);
+    this.details = details;
+  }
+}
+
 /**
  * functions
  */
@@ -40,14 +47,21 @@ async function runLighthouse(url, type, pacingDelay, apiKey, AEMBulk) {
       },
     });
 
-    if (!res.ok) {
-      throw new Error(`PSI error: ${res.status} ${res.statusText}`);
-    }
-
     const duration = Date.now() - startTime;
-    const report = await res.json();
     const timestamp = new Date().toISOString();
 
+    if (!res.ok) {
+      throw new LHError(`PSI error: ${res.status} ${res.statusText}`, {
+        url,
+        status: res.status,
+        statusText: res.statusText,
+        execId,
+        duration,
+        timestamp,
+      });
+    }
+
+    const report = await res.json();
     return {
       execId,
       url,
@@ -103,7 +117,11 @@ async function addURLToAnalyse(type, pacingDelay, queue, url, logger, apiKey, AE
         return await runLighthouse(url, type, pacingDelay, apiKey, AEMBulk);
       } catch (e) {
         logger.error(`caching ${url.transformed}: ${e.stack})`);
-        return { url: url.original, status: e.message };
+        return {
+          ...e.details,
+          status: 'error',
+          message: e.message,
+        };
       }
     });
   } catch (e) {
@@ -114,6 +132,8 @@ async function addURLToAnalyse(type, pacingDelay, queue, url, logger, apiKey, AE
 /**
  * main
  */
+
+let excelReport = null;
 
 export default function lighthouseCmd() {
   return {
@@ -153,7 +173,11 @@ export default function lighthouseCmd() {
         })
         .epilog(`(You can also set the Google PSI Check API key in the ${GOOGLE_API_ENV_KEY} environment variable)`);
     },
-    handler: (new CommonCommandHandler()).withHandler(async ({
+    handler: (new CommonCommandHandler(null, null, async () => {
+      if (excelReport) {
+        await excelReport.close();
+      }
+    })).withHandler(async ({
       argv, logger, AEMBulk,
     }) => {
       let { workers } = argv;
@@ -192,19 +216,25 @@ export default function lighthouseCmd() {
       logger.info(`Processing ${urls.length} URLs with ${workers} workers`);
 
       // init excel report
-      const excelReport = new ExcelWriter({
+      excelReport = new ExcelWriter({
         filename: argv.excelReport,
-        headers: ['url', 'execution id', 'timestamp', 'duration (ms)']
+        headers: ['url', 'execution id', 'status', 'timestamp', 'duration (ms)']
           .concat(LH_CATEGORIES_KEYS.map((k) => `${k} (%)`))
-          .concat(LH_AUDIT_KEYS.map((k) => `${k} (ms)`)),
+          .concat(LH_AUDIT_KEYS.map((k) => `${k} (ms)`))
+          .concat(['message']),
         formatRowFn: (record) => {
-          const { report } = record;
-          const { audits, categories } = report.lighthouseResult;
-          return [
-            record.url, record.execId, record.timestamp, record.duration,
-          ]
-            .concat(LH_CATEGORIES_KEYS.map((k) => (('score' in categories[k]) ? Math.round(categories[k].score * 100) : 'N/A')))
-            .concat(LH_AUDIT_KEYS.map((k) => (('numericValue' in audits[k]) ? Math.round(audits[k].numericValue * 1000) / 1000 : 'N/A')));
+          if (record?.status === 'error') {
+            return [record.url, record.execId, 'error', record.timestamp, record.duration, '', '', '', '', '', '', '', '', '', record.message];
+          } else {
+            const { report } = record;
+            const { audits, categories } = report.lighthouseResult;
+            return [
+              record.url, record.execId, 'done', record.timestamp, record.duration,
+            ]
+              .concat(LH_CATEGORIES_KEYS.map((k) => (('score' in categories[k]) ? Math.round(categories[k].score * 100) : 'N/A')))
+              .concat(LH_AUDIT_KEYS.map((k) => (('numericValue' in audits[k]) ? Math.round(audits[k].numericValue * 1000) / 1000 : 'N/A')))
+              .concat(['']);
+          }
         },
         writeEvery: Math.min(Math.round(urls.length / 10), 1000),
       });
@@ -223,20 +253,20 @@ export default function lighthouseCmd() {
         // triggered each time a job is completed
         queue.on('completed', async (result) => {
           try {
+            // write result to file
+            fs.writeFileSync(path.join(argv.reportsFolder, `${result.execId}.json`), JSON.stringify(result.report, null, 2));
+
             const { report } = result;
             const { audits } = report.lighthouseResult;
             const summaryAuditKeys = ['SI', 'FCP', 'LCP', 'TBT', 'CLS'];
             const summary = LH_AUDIT_KEYS.map((k, i) => (`${summaryAuditKeys[i]}: ${('numericValue' in audits[k]) ? Math.round(audits[k].numericValue * 1000) / 1000 : 'N/A'}`)).join(' | ');
 
             logger.info(`analysis done for ${result.url}: ${summary} (duration: ${result.duration}ms.) id: ${result.execId})`);
-            // write result to file
-            fs.writeFileSync(path.join(argv.reportsFolder, `${result.execId}.json`), JSON.stringify(result.report, null, 2));
-            // add row to excel report
-            await excelReport.addRow(result);
           } catch (e) {
-            logger.error(`handler - queue completed: ${e.stack}`);
-            throw e;
+            logger.error(`handler - queue item completed: ${e.stack}`);
           }
+          // add row to excel report
+          await excelReport.addRow(result);
         });
 
         const donePromise = new Promise((resolve) => {
