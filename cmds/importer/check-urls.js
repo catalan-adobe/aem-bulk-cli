@@ -29,6 +29,11 @@ export default function CheckURLsCmd() {
           describe: 'Path to Excel report file for the found URLs',
           default: 'check-urls-report.xlsx',
           type: 'string',
+        })
+        .option('headers', {
+          alias: 'h',
+          describe: 'file containing custom headers to include in the request',
+          type: 'string',
         });
     },
     handler: (new CommonCommandHandler()).withHandler(async ({
@@ -94,18 +99,26 @@ export default function CheckURLsCmd() {
           });
         });
 
+        // read custom headers
+        let headers = {};
+        if (argv.headers) {
+          headers = JSON.parse(fs.readFileSync(argv.headers, 'utf-8'));
+        }
+
         // add items to queue
         urls.forEach((url) => {
           queue.add(async () => {
             try {
               logger.debug(`fetching ${url}`);
               const resp = await fetch(url, {
+                headers,
                 timeout: {
-                  request: 30000,
+                  request: 60000,
                 },
               });
 
               if (!resp.ok) {
+                logger.error(resp);
                 throw new Error(`fetch ${url}: ${resp.statusCode}`);
               }
 
@@ -114,6 +127,7 @@ export default function CheckURLsCmd() {
                 status: resp.status,
               };
             } catch (error) {
+              logger.error(error.cause);
               logger.error(`fetch ${url}: ${error.message}`);
               return {
                 url,
