@@ -9,21 +9,20 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-import fs from 'fs';
 import readline from 'readline';
 import { getLogger } from './logger.js';
 
-function cleanupCLIArgs(argv) {
-  const args = { ...argv };
-  Object.keys(args).forEach((key) => {
-    if (key.includes('-')) {
-      delete args[key];
-    }
-  });
-  delete args.$0;
-  delete args._;
-  return args;
-}
+// function cleanupCLIArgs(argv) {
+//   const args = { ...argv };
+//   Object.keys(args).forEach((key) => {
+//     if (key.includes('-')) {
+//       delete args[key];
+//     }
+//   });
+//   delete args.$0;
+//   delete args._;
+//   return args;
+// }
 
 export async function readLines(breaker = '', msg = '') {
   const rl = readline.createInterface({
@@ -96,7 +95,10 @@ export class CommonCommandHandler {
       process.once('exit', gracefulShutdown);
 
       try {
-        fs.writeFileSync(`aem-bulk_${argv._.join('_')}_${new Date().toISOString().split('.')[0].replaceAll(':', '')}.config.json`, JSON.stringify(cleanupCLIArgs(argv), null, 2));
+        // disable saving config file for now
+        // const dateStr = new Date().toISOString().split('.')[0].replaceAll(':', '');
+        // const cfg = `aem-bulk_${argv._.join('_')}_${dateStr}.config.json`;
+        // fs.writeFileSync(cfg, JSON.stringify(cleanupCLIArgs(argv), null, 2));
 
         const cmdCommand = argv._ ? argv._.join('_>_') : 'unknown';
         this.logger = getLogger(cmdCommand, {
