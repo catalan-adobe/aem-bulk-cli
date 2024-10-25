@@ -1,3 +1,17 @@
+# [1.17.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.16.1...v1.17.0) (2024-10-25)
+
+
+### Bug Fixes
+
+* improve crawl command ([13636b9](https://github.com/catalan-adobe/aem-bulk-cli/commit/13636b9ddde24905f829c66deff7fee9ca319556))
+* set level in custom logger ([bc170af](https://github.com/catalan-adobe/aem-bulk-cli/commit/bc170af231de2e454b956ad2aeed268844c288b2))
+
+
+### Features
+
+* better handle google psi errors ([b013514](https://github.com/catalan-adobe/aem-bulk-cli/commit/b0135142760b766de353f29af9e0c1c6cca6d731))
+* implement custom header as json input file ([3039ef0](https://github.com/catalan-adobe/aem-bulk-cli/commit/3039ef0e3af6204170bc76a887d7d8975532a599))
+
 ## [1.16.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.16.0...v1.16.1) (2024-10-03)
 
 
