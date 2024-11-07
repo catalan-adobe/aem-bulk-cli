@@ -51,14 +51,23 @@ async function runLighthouse(url, type, pacingDelay, apiKey, AEMBulk) {
     const timestamp = new Date().toISOString();
 
     if (!res.ok) {
-      throw new LHError(`PSI error: ${res.status} ${res.statusText}`, {
-        url,
-        status: res.status,
-        statusText: res.statusText,
+      const result = {
         execId,
+        url,
         duration,
         timestamp,
-      });
+        error: `PSI error: ${res.status} ${res.statusText}`,
+      };
+
+      try {
+        const errorJson = await res.json();
+
+        result.error = `${errorJson.error.code} - ${errorJson.error.message}`;
+      } catch {
+        // noop
+      }
+
+      return result;
     }
 
     const report = await res.json();
@@ -248,11 +257,34 @@ export default function lighthouseCmd() {
         // concatenate errors and only display them at the end
         queue.on('error', (error) => {
           logger.error(error);
+
+          if (error instanceof LHError) {
+            logger.error(`Error for ${error.details.url}: ${error.message}`);
+
+            if (argv.jsonSummary) {
+              fs.writeFileSync(argv.jsonSummary, JSON.stringify({
+                url: error.details.url,
+                status: 'error',
+                message: error.message,
+                execId: error.details.execId,
+                duration: error.details.duration,
+              }, null, 2));
+            }
+          }
         });
 
         // triggered each time a job is completed
         queue.on('completed', async (result) => {
           try {
+            if (result.error) {
+              logger.error(`analysis error for ${result.url}: ${result.error}`);
+              fs.writeFileSync(path.join(argv.reportsFolder, `${result.execId}.json`), JSON.stringify(result, null, 2));
+              if (argv.jsonSummary) {
+                fs.writeFileSync(argv.jsonSummary, JSON.stringify(result, null, 2));
+              }
+              return;
+            }
+
             // write result to file
             fs.writeFileSync(path.join(argv.reportsFolder, `${result.execId}.json`), JSON.stringify(result.report, null, 2));
 
