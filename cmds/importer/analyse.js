@@ -34,6 +34,7 @@ async function analyseWorker({
     const {
       AEMBulk,
       options: {
+        disableJS,
         withScreenshots,
         pacingDelay,
         templatesCsv,
@@ -62,7 +63,7 @@ async function analyseWorker({
         headless: true,
         useLocalChrome: true,
         userDataDir,
-        disableJS: false,
+        disableJS,
         adBlocker: true,
         gdprBlocker: true,
         extraArgs: ['--disable-features=site-per-process,IsolateOrigins,sitePerProcess'],
@@ -72,6 +73,10 @@ async function analyseWorker({
       await page.evaluateOnNewDocument(preloadFile);
 
       const resp = await page.goto(url, { waitUntil: 'networkidle2' });
+
+      // setup page state
+      await AEMBulk.Puppeteer.smartScroll(page, { postReset: true });
+      await AEMBulk.Time.sleep(2000);
 
       // compute status
       if (resp.status() >= 400) {
@@ -86,9 +91,10 @@ async function analyseWorker({
       } else {
         // ok -> analyse
         const resultHandle = await page.evaluateHandle(async () => {
-          /* global document, xp */
+          /* global window, document, xp */
           document.querySelectorAll('.navigation-menu ul li > :not(button)').forEach((el) => el.remove());
-          await xp.analysePage();
+          await xp.detectSections(document.body, window, { autoDetect: true });
+          // await xp.analysePage({ autoDetect: true });
           delete xp.boxes.children;
           return xp.boxes;
         });
@@ -101,8 +107,8 @@ async function analyseWorker({
 
         // take screenshot
         if (withScreenshots) {
-          const [p, filename] = AEMBulk.Url.buildPathAndFilenameWithPathFromUrl(url, 'screenshot', 'jpeg');
-          const ppp = path.join(SCREENSHOTS_FOLDER, p);
+          const urlDetails = AEMBulk.FS.computeFSDetailsFromUrl(url);
+          const ppp = path.join(SCREENSHOTS_FOLDER, urlDetails.path);
 
           if (!fs.existsSync(ppp)) {
             fs.mkdirSync(ppp, { recursive: true });
@@ -110,7 +116,7 @@ async function analyseWorker({
           await page.screenshot({
             format: 'jpeg',
             quality: 25,
-            path: path.join(ppp, `${boxes.template?.hash || ''}_template_${filename}`),
+            path: path.join(ppp, `template_${urlDetails.filename}.screenshot.jpg`),
             fullPage: true,
           });
           await AEMBulk.Time.sleep(250);
@@ -145,6 +151,12 @@ export default function analyseCmd() {
     describe: 'Analyse the given URLs',
     builder: (yargs) => {
       withCustomCLIParameters(yargs, { inputs: true, workers: true })
+        .option('disable-js', {
+          alias: 'disableJS',
+          describe: 'Disable JavaScript in the orchestrated browser',
+          type: 'boolean',
+          default: false,
+        })
         .option('with-screenshots', {
           alias: 'withScreenshots',
           describe: 'Enable taking screenshots (saved in ./screenshots folder)',
@@ -168,7 +180,7 @@ export default function analyseCmd() {
           default: 'analyse-report.xlsx',
           type: 'string',
         })
-        .group(['pacing-delay', 'with-screenshots', 'templates-csv', 'excel-report'], 'Analyse Options:')
+        .group(['disable-js', 'with-screenshots', 'templates-csv', 'excel-report', 'pacing-delay'], 'Analyse Options:')
 
         .help();
     },
@@ -216,6 +228,7 @@ export default function analyseCmd() {
           logger,
           AEMBulk,
           options: {
+            disableJS: argv.disableJS,
             withScreenshots: argv.withScreenshots,
             pacingDelay: argv.pacingDelay,
             templatesCsv: argv.templatesCsv,
