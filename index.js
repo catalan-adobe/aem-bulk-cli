@@ -26,7 +26,7 @@ const MIN_MSG = 'You need at least one command.';
   logger.debug('aem-bulk-cli init ...');
 
   function envAwareStrict(args, aliases) {
-    const specialKeys = ['$0', '--', '_'];
+    const specialKeys = ['$0', '--', '_', 'cli'];
 
     const unknown = [];
     Object.keys(args).forEach((key) => {

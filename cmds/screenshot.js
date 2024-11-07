@@ -213,7 +213,7 @@ export default function screenshotCmd() {
         removeSelectors: argv.removeSelector,
         postLoadWait: argv.postLoadWait,
         headless: argv.headless ?? true,
-        adBlocker: argv.adblocker ?? true,
+        adBlocker: argv.adBlocker ?? true,
         gdprBlocker: argv.gdprBlocker ?? true,
         disableJS: argv.disableJS ?? false,
       };
