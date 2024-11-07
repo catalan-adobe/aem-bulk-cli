@@ -1,6 +1,6 @@
 {
   "name": "aem-bulk",
-  "version": "1.17.2",
+  "version": "1.17.3",
   "description": "CLI for AEM Edge Delivery bulk operations ",
   "type": "module",
   "bin": "./index.js",
@@ -28,7 +28,7 @@
     "serve-static": "^1.15.0",
     "sharp": "0.33.5",
     "simply-beautiful": "^1.0.1",
-    "winston": "3.15.0",
+    "winston": "3.16.0",
     "yargs": "17.7.2"
   },
   "devDependencies": {
