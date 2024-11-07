@@ -13,7 +13,7 @@
   "author": "catalan@adobe.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "@adobe/helix-md2docx": "2.1.79",
+    "@adobe/helix-md2docx": "2.1.81",
     "cors": "^2.8.5",
     "css-tree": "^3.0.0",
     "cssbeautify": "^0.3.1",
