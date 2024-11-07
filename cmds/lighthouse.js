@@ -167,7 +167,6 @@ export default function lighthouseCmd() {
           type: 'number',
           default: 250,
         })
-        .group(['psiType', 'lhGoogleApiKey', 'pacingDelay'], 'Lighthouse Analysis Options:')
         .option('excel-report', {
           alias: 'excelReport',
           describe: 'Path to Excel report file for analysed URLs',
@@ -180,6 +179,12 @@ export default function lighthouseCmd() {
           default: 'lh-reports',
           type: 'string',
         })
+        .option('json-summary', {
+          alias: 'jsonSummary',
+          describe: 'Filename for JSON summary report',
+          type: 'string',
+        })
+        .group(['psiType', 'lhGoogleApiKey', 'pacingDelay', 'excelReport', 'reportsFolder', 'jsonSummary'], 'Lighthouse Analysis Options:')
         .epilog(`(You can also set the Google PSI Check API key in the ${GOOGLE_API_ENV_KEY} environment variable)`);
     },
     handler: (new CommonCommandHandler(null, null, async () => {
@@ -289,9 +294,53 @@ export default function lighthouseCmd() {
             fs.writeFileSync(path.join(argv.reportsFolder, `${result.execId}.json`), JSON.stringify(result.report, null, 2));
 
             const { report } = result;
-            const { audits } = report.lighthouseResult;
+            const { audits, categories } = report.lighthouseResult;
             const summaryAuditKeys = ['SI', 'FCP', 'LCP', 'TBT', 'CLS'];
             const summary = LH_AUDIT_KEYS.map((k, i) => (`${summaryAuditKeys[i]}: ${('numericValue' in audits[k]) ? Math.round(audits[k].numericValue * 1000) / 1000 : 'N/A'}`)).join(' | ');
+
+            if (argv.jsonSummary) {
+              let psiData = {
+                main: {
+                  performance: '',
+                  accessibility: '',
+                  bestPractices: '',
+                  seo: '',
+                },
+                details: {
+                  SI: '',
+                  FCP: '',
+                  LCP: '',
+                  TBT: '',
+                  CLS: '',
+                },
+              };
+
+              LH_CATEGORIES_KEYS.map((k) => (('score' in categories[k]) ? Math.round(categories[k].score * 100) : 'N/A'));
+              LH_AUDIT_KEYS.map((k) => (('numericValue' in audits[k]) ? Math.round(audits[k].numericValue * 1000) / 1000 : 'N/A'));
+
+              psiData = {
+                main: {
+                  performance: ('score' in categories.performance) ? Math.round(categories.performance.score * 100) : 'N/A',
+                  accessibility: ('score' in categories.accessibility) ? Math.round(categories.accessibility.score * 100) : 'N/A',
+                  bestPractices: ('score' in categories['best-practices']) ? Math.round(categories['best-practices'].score * 100) : 'N/A',
+                  seo: ('score' in categories.seo) ? Math.round(categories.seo.score * 100) : 'N/A',
+                },
+                details: {
+                  SI: ('numericValue' in audits['speed-index']) ? Math.round(audits['speed-index'].numericValue * 1000) / 1000 : 'N/A',
+                  FCP: ('numericValue' in audits['first-contentful-paint']) ? Math.round(audits['first-contentful-paint'].numericValue * 1000) / 1000 : 'N/A',
+                  LCP: ('numericValue' in audits['largest-contentful-paint']) ? Math.round(audits['largest-contentful-paint'].numericValue * 1000) / 1000 : 'N/A',
+                  TBT: ('numericValue' in audits['total-blocking-time']) ? Math.round(audits['total-blocking-time'].numericValue * 1000) / 1000 : 'N/A',
+                  CLS: ('numericValue' in audits['cumulative-layout-shift']) ? Math.round(audits['cumulative-layout-shift'].numericValue * 1000) / 1000 : 'N/A',
+                },
+              };
+
+              fs.writeFileSync(argv.jsonSummary, JSON.stringify({
+                url: result.url,
+                execId: result.execId,
+                summary: psiData,
+                duration: result.duration,
+              }, null, 2));
+            }
 
             logger.info(`analysis done for ${result.url}: ${summary} (duration: ${result.duration}ms.) id: ${result.execId})`);
           } catch (e) {
