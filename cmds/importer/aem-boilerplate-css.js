@@ -97,16 +97,17 @@ export default function aemBoilerplateCSSCmd() {
 
         [browser, page] = await AEMBulk.Puppeteer.initBrowser({
           headless: true,
-          adBlocker: true,
-          gdprBlocker: true,
+          adBlocker: false,
+          gdprBlocker: false,
           devTools: false,
+          useLocalChrome: false,
         });
 
-        await page.goto(url.href, { waitUntil: 'networkidle2' });
-
         const extractedStyles = await
-        AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromCurrentPage(
+        AEMBulk.Puppeteer.CSS.getMinimalCSSForAEMBoilerplateFromURL(
+          url.href,
           page,
+          { logger, fontsFolder },
         );
 
         /**
@@ -219,7 +220,7 @@ export default function aemBoilerplateCSSCmd() {
           autosemicolon: true,
         });
         extractedStyles.fontFaces.forEach((font) => {
-          console.log(`
+          logger.silly(`
 @font-face {
   font-family: ${font.fontFamily.includes(' ') ? `"${font.fontFamily}"` : font.fontFamily};
   src: ${font.src};
