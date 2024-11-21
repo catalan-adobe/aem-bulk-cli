@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.17.5...v1.18.0) (2024-11-21)
+
+
+### Features
+
+* improve font detection and extraction, support more cases ([053d444](https://github.com/catalan-adobe/aem-bulk-cli/commit/053d444fac8db7f3dec34acb52617e9312512172))
+
 ## [1.17.5](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.17.4...v1.17.5) (2024-11-16)
 
 
