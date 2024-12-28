@@ -1,3 +1,10 @@
+## [1.18.2](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.18.1...v1.18.2) (2024-12-28)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastq to v1.18.0 ([#101](https://github.com/catalan-adobe/aem-bulk-cli/issues/101)) ([8cba1cf](https://github.com/catalan-adobe/aem-bulk-cli/commit/8cba1cf1069bc372863caae170ded4a0fcf3606f))
+
 ## [1.18.1](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.18.0...v1.18.1) (2024-12-07)
 
 
