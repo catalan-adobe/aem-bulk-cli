@@ -38,6 +38,6 @@
     "@semantic-release/git": "10.0.1",
     "@types/yargs": "17.0.33",
     "eslint": "8.57.0",
-    "semantic-release": "24.2.0"
+    "semantic-release": "24.2.1"
   }
 }
