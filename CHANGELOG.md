@@ -1,3 +1,10 @@
+## [1.18.3](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.18.2...v1.18.3) (2025-01-25)
+
+
+### Bug Fixes
+
+* **deps:** update dependency p-queue to v8.1.0 ([#104](https://github.com/catalan-adobe/aem-bulk-cli/issues/104)) ([2a40c06](https://github.com/catalan-adobe/aem-bulk-cli/commit/2a40c06f5ac29785e2ce045be77dc207781b160d))
+
 ## [1.18.2](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.18.1...v1.18.2) (2024-12-28)
 
 
