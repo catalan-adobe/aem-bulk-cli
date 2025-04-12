@@ -1,3 +1,10 @@
+## [1.18.7](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.18.6...v1.18.7) (2025-04-12)
+
+
+### Bug Fixes
+
+* **deps:** update dependency sharp to v0.34.1 ([#112](https://github.com/catalan-adobe/aem-bulk-cli/issues/112)) ([119b5bc](https://github.com/catalan-adobe/aem-bulk-cli/commit/119b5bca2353bf4366c9cd5f693e5dc0e482a03b))
+
 ## [1.18.6](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.18.5...v1.18.6) (2025-04-05)
 
 
