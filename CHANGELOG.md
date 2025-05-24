@@ -1,3 +1,10 @@
+## [1.18.8](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.18.7...v1.18.8) (2025-05-24)
+
+
+### Bug Fixes
+
+* **deps:** update external fixes ([#114](https://github.com/catalan-adobe/aem-bulk-cli/issues/114)) ([520621d](https://github.com/catalan-adobe/aem-bulk-cli/commit/520621d71b77005137e9149b20aed8d846a82972))
+
 ## [1.18.7](https://github.com/catalan-adobe/aem-bulk-cli/compare/v1.18.6...v1.18.7) (2025-04-12)
 
 
