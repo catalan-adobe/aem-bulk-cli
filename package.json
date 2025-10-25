@@ -36,7 +36,7 @@
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/exec": "6.0.3",
     "@semantic-release/git": "10.0.1",
-    "@types/yargs": "17.0.33",
+    "@types/yargs": "17.0.34",
     "eslint": "8.57.0",
     "semantic-release": "24.2.9"
   }
